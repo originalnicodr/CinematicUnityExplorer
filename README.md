@@ -18,7 +18,6 @@
 # Releases  [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/total.svg)](../../releases)
 
 [![](https://img.shields.io/github/release/originalnicodr/UnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/workflow/status/originalnicodr/UnityExplorer/Build%20UnityExplorer)](https://github.com/originalnicodr/UnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/latest/total.svg)](../../releases/latest)
-[![](https://img.shields.io/github/release/originalnicodr/UnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/workflow/status/originalnicodr/UnityExplorer/Build%20UnityExplorer)](https://github.com/originalnicodr/UnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/latest/total.svg)](../../releases/latest)
 
 ⚡ Thunderstore releases: [BepInEx Mono](https://thunderstore.io/package/originalnicodr/UnityExplorer) | [BepInEx IL2CPP](https://gtfo.thunderstore.io/package/originalnicodr/UnityExplorer_IL2CPP) | [MelonLoader IL2CPP](https://boneworks.thunderstore.io/package/originalnicodr/UnityExplorer_IL2CPP_ML)
 
