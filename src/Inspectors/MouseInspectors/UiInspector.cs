@@ -28,8 +28,9 @@ namespace UnityExplorer.Inspectors.MouseInspectors
             currentHitObjects.Clear();
         }
 
-        public override void OnSelectMouseInspect()
+        public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
         {
+            // need to properly handle inspectorAction here
             LastHitObjects.Clear();
             LastHitObjects.AddRange(currentHitObjects);
             RuntimeHelper.StartCoroutine(SetPanelActiveCoro());

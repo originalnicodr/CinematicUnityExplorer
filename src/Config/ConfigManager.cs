@@ -28,6 +28,33 @@ namespace UnityExplorer.Config
         public static ConfigElement<KeyCode> UI_MouseInspect_Keybind;
         public static ConfigElement<string> CSConsole_Assembly_Blacklist;
         public static ConfigElement<string> Reflection_Signature_Blacklist;
+        public static ConfigElement<bool> Reflection_Hide_NativeInfoPtrs;
+
+        public static ConfigElement<KeyCode> Pause;
+        public static ConfigElement<KeyCode> Frameskip;
+        public static ConfigElement<KeyCode> Screenshot;
+        public static ConfigElement<KeyCode> HUD_Toggle;
+        public static ConfigElement<KeyCode> Freecam_Toggle;
+        public static ConfigElement<KeyCode> Block_Freecam_Movement;
+        public static ConfigElement<KeyCode> Toggle_Block_Games_Input;
+        public static ConfigElement<KeyCode> Speed_Up_Movement;
+        public static ConfigElement<KeyCode> Speed_Down_Movement;
+        public static ConfigElement<KeyCode> Forwards_1;
+        public static ConfigElement<KeyCode> Forwards_2;
+        public static ConfigElement<KeyCode> Backwards_1;
+        public static ConfigElement<KeyCode> Backwards_2;
+        public static ConfigElement<KeyCode> Left_1;
+        public static ConfigElement<KeyCode> Left_2;
+        public static ConfigElement<KeyCode> Right_1;
+        public static ConfigElement<KeyCode> Right_2;
+        public static ConfigElement<KeyCode> Up;
+        public static ConfigElement<KeyCode> Down;
+        public static ConfigElement<KeyCode> Tilt_Left;
+        public static ConfigElement<KeyCode> Tilt_Right;
+        public static ConfigElement<KeyCode> Tilt_Reset;
+        public static ConfigElement<KeyCode> Increase_FOV;
+        public static ConfigElement<KeyCode> Decrease_FOV;
+        public static ConfigElement<KeyCode> Reset_FOV;
 
         // internal configs
         internal static InternalConfigHandler InternalHandler { get; private set; }
@@ -145,6 +172,112 @@ namespace UnityExplorer.Config
                 "Seperate signatures with a semicolon ';'.\r\n" +
                 "For example, to blacklist Camera.main, you would add 'UnityEngine.Camera.main;'",
                 "");
+            
+            Reflection_Hide_NativeInfoPtrs = new("Hide NativeMethodInfoPtr_s and NativeFieldInfoPtr_s",
+                "Use this to blacklist NativeMethodPtr_s and NativeFieldInfoPtrs_s from the class inspector, mainly to reduce clutter.\r\n" +
+                "For example, this will hide 'Class.NativeFieldInfoPtr_value' for the field 'Class.value'.",
+                false);
+
+            Pause = new("Pause",
+                "Toggle the pause of the game.",
+                KeyCode.PageUp);
+            
+            Frameskip = new("Frameskip",
+                "Skip a frame when the game is paused.",
+                KeyCode.PageDown);
+
+            Screenshot = new("Take a screenshot",
+                "Takes a screenshot with the size multiplier specified in the Misc panel.\n" +
+                "Saves the screenshot to 'sinai-dev-UnityExplorer\\Screenshots' in png format.",
+                KeyCode.None);
+
+            HUD_Toggle = new("HUD Toggle",
+                "Toggle the games HUD. If there are elements that are still visible try loading the 'Load HUD elements' button on the Misc panel, and toggle the HUD again.",
+                KeyCode.Delete);
+
+            Freecam_Toggle = new("Freecam",
+                "Toggles freecamera mode.",
+                KeyCode.Insert);
+
+            Block_Freecam_Movement = new("Toggle block Freecam movement",
+                "Blocks the freecam from moving when pressing the freecam-related hotkeys.",
+                KeyCode.Home);
+
+            Toggle_Block_Games_Input = new("Toggle block games input",
+                "Blocks the games input when the the freecam is on.",
+                KeyCode.KeypadPeriod);
+
+            Speed_Up_Movement = new("Speed up movement",
+                "Maintain this key pressed while moving the camera around to increase the freecam movement speed.",
+                KeyCode.LeftShift);
+
+            Speed_Down_Movement = new("Speed down movement",
+                "Maintain this key pressed while moving the camera around to decrease the freecam movement speed.",
+                KeyCode.LeftAlt);
+
+            Forwards_1 = new("Forwards 1",
+                "Move the freecam forwards.",
+                KeyCode.W);
+
+            Forwards_2 = new("Forwards 2",
+                "Move the freecam forwards, alt key.",
+                KeyCode.UpArrow);
+
+            Backwards_1 = new("Backwards 1",
+                "Move the freecam backward.",
+                KeyCode.S);
+
+            Backwards_2 = new("Backwards 2",
+                "Move the freecam backward, alt key.",
+                KeyCode.DownArrow);
+
+            Left_1 = new("Left 1",
+                "Move the freecam to the left.",
+                KeyCode.A);
+            
+            Left_2 = new("Left 2",
+                "Move the freecam to the left, alt key.",
+                KeyCode.LeftArrow);
+
+            Right_1 = new("Right 1",
+                "Move the freecam to the right.",
+                KeyCode.D);
+
+            Right_2 = new("Right 2",
+                "Move the freecam to the right, alt key.",
+                KeyCode.RightArrow);
+
+            Up = new("Up",
+                "Move the freecam upwards.",
+                KeyCode.Space);
+
+            Down = new("Down",
+                "Move the freecam down.",
+                KeyCode.LeftControl);
+
+            Tilt_Left = new("Tilt left",
+                "Tilt the camera to the left.",
+                KeyCode.Keypad1);
+
+            Tilt_Right = new("Tilt right",
+                "Tilt the camera to the left.",
+                KeyCode.Keypad3);
+
+            Tilt_Reset = new("Tilt reset",
+                "Resets the tilt the camera.",
+                KeyCode.Keypad2);
+
+            Increase_FOV = new("Increase FOV",
+                "Increase the field of view of the current freecam.",
+                KeyCode.KeypadPlus);
+
+            Decrease_FOV = new("Decrease FOV",
+                "Decrease the field of view of the current freecam.",
+                KeyCode.KeypadMinus);
+
+            Reset_FOV = new("Reset FOV",
+                "Resets the field of view of the current freecam to the original one.",
+                KeyCode.KeypadMultiply);
         }
     }
 }

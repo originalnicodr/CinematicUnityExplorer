@@ -98,7 +98,16 @@ namespace UnityExplorer
             UIManager.SetPanelActive(UIManager.Panels.Inspector, false);
         }
 
-        static void CreateInspector<T>(object target, bool staticReflection = false, CacheObjectBase parent = null) where T : InspectorBase
+        public static void InspectWithFilters(object target, string filterInputField, UnityExplorer.Inspectors.MemberFilter memberFilterFlags = UnityExplorer.Inspectors.MemberFilter.All, bool staticReflection = false, CacheObjectBase parent = null)
+        {
+            ReflectionInspector inspector = CreateInspector<ReflectionInspector>(target, staticReflection, parent);
+            inspector.filterInputField.Text = filterInputField;
+            //TODO: Update the member flags visually on the inspector.
+            inspector.memberFilter = memberFilterFlags;
+            inspector.Update();
+        }
+
+        static T CreateInspector<T>(object target, bool staticReflection = false, CacheObjectBase parent = null) where T : InspectorBase
         {
             T inspector = Pool<T>.Borrow();
             Inspectors.Add(inspector);
@@ -121,6 +130,8 @@ namespace UnityExplorer
             SetInspectorActive(inspector);
 
             OnInspectedTabsChanged?.Invoke();
+
+            return inspector;
         }
 
         public static void ReleaseInspector<T>(T inspector) where T : InspectorBase

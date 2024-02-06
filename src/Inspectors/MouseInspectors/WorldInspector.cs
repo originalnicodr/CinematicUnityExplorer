@@ -21,9 +21,9 @@
             lastHitObject = null;
         }
 
-        public override void OnSelectMouseInspect()
+        public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
         {
-            InspectorManager.Inspect(lastHitObject);
+            inspectorAction(lastHitObject);
         }
 
         public override void UpdateMouseInspect(Vector2 mousePos)

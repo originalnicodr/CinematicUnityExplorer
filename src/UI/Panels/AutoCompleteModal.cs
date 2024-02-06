@@ -100,14 +100,14 @@ namespace UnityExplorer.UI.Panels
             if (!Suggesting(handler))
                 return false;
 
-            bool up = InputManager.GetKey(KeyCode.UpArrow);
-            bool down = InputManager.GetKey(KeyCode.DownArrow);
+            bool up = IInputManager.GetKey(KeyCode.UpArrow);
+            bool down = IInputManager.GetKey(KeyCode.DownArrow);
 
             if (up || down)
             {
                 if (up)
                 {
-                    if (InputManager.GetKeyDown(KeyCode.UpArrow))
+                    if (IInputManager.GetKeyDown(KeyCode.UpArrow))
                     {
                         SetSelectedSuggestion(SelectedIndex - 1);
                         timeOfLastNavHold = Time.realtimeSinceStartup + 0.3f;
@@ -120,7 +120,7 @@ namespace UnityExplorer.UI.Panels
                 }
                 else
                 {
-                    if (InputManager.GetKeyDown(KeyCode.DownArrow))
+                    if (IInputManager.GetKeyDown(KeyCode.DownArrow))
                     {
                         SetSelectedSuggestion(SelectedIndex + 1);
                         timeOfLastNavHold = Time.realtimeSinceStartup + 0.3f;
@@ -140,12 +140,12 @@ namespace UnityExplorer.UI.Panels
 
         public static bool CheckEnter(ISuggestionProvider handler)
         {
-            return Suggesting(handler) && InputManager.GetKeyDown(KeyCode.Return);
+            return Suggesting(handler) && IInputManager.GetKeyDown(KeyCode.Return);
         }
 
         public static bool CheckEscape(ISuggestionProvider handler)
         {
-            return Suggesting(handler) && InputManager.GetKeyDown(KeyCode.Escape);
+            return Suggesting(handler) && IInputManager.GetKeyDown(KeyCode.Escape);
         }
 
         private static void SetSelectedSuggestion(int index)

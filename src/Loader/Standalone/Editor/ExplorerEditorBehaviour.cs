@@ -27,6 +27,32 @@ namespace UnityExplorer.Loader.Standalone
         public KeyCode Force_Unlock_Toggle;
         public bool Disable_EventSystem_Override;
 
+        public KeyCode Pause;
+        public KeyCode Frameskip;
+        public KeyCode Screenshot;
+        public KeyCode HUD_Toggle;
+        public KeyCode Freecam_Toggle;
+        public KeyCode Block_Freecam_Movement;
+        public KeyCode Toggle_Block_Games_Input;
+        public KeyCode Speed_Up_Movement;
+        public KeyCode Speed_Down_Movement;
+        public KeyCode Forwards_1;
+        public KeyCode Forwards_2;
+        public KeyCode Backwards_1;
+        public KeyCode Backwards_2;
+        public KeyCode Left_1;
+        public KeyCode Left_2;
+        public KeyCode Right_1;
+        public KeyCode Right_2;
+        public KeyCode Up;
+        public KeyCode Down;
+        public KeyCode Tilt_Left;
+        public KeyCode Tilt_Right;
+        public KeyCode Tilt_Reset;
+        public KeyCode Increase_FOV;
+        public KeyCode Decrease_FOV;
+        public KeyCode Reset_FOV;
+
         internal void Awake()
         {
             Instance = this;
@@ -53,6 +79,32 @@ namespace UnityExplorer.Loader.Standalone
             ConfigManager.Force_Unlock_Mouse.Value = this.Force_Unlock_Mouse;
             ConfigManager.Force_Unlock_Toggle.Value = this.Force_Unlock_Toggle;
             ConfigManager.Disable_EventSystem_Override.Value = this.Disable_EventSystem_Override;
+
+            ConfigManager.Pause.Value = this.Pause;
+            ConfigManager.Frameskip.Value = this.Frameskip;
+            ConfigManager.Screenshot.Value = this.Screenshot;
+            ConfigManager.HUD_Toggle.Value = this.HUD_Toggle;
+            ConfigManager.Freecam_Toggle.Value = this.Freecam_Toggle;
+            ConfigManager.Block_Freecam_Movement.Value = this.Block_Freecam_Movement;
+            ConfigManager.Toggle_Block_Games_Input.Value = this.Toggle_Block_Games_Input;
+            ConfigManager.Speed_Up_Movement.Value = this.Speed_Up_Movement;
+            ConfigManager.Speed_Down_Movement.Value = this.Speed_Down_Movement;
+            ConfigManager.Forwards_1.Value = this.Forwards_1;
+            ConfigManager.Forwards_2.Value = this.Forwards_2;
+            ConfigManager.Backwards_1.Value = this.Backwards_1;
+            ConfigManager.Backwards_2.Value = this.Backwards_2;
+            ConfigManager.Left_1.Value = this.Left_1;
+            ConfigManager.Left_2.Value = this.Left_2;
+            ConfigManager.Right_1.Value = this.Right_1;
+            ConfigManager.Right_2.Value = this.Right_2;
+            ConfigManager.Up.Value = this.Up;
+            ConfigManager.Down.Value = this.Down;
+            ConfigManager.Tilt_Left.Value = this.Tilt_Left;
+            ConfigManager.Tilt_Right.Value = this.Tilt_Right;
+            ConfigManager.Tilt_Reset.Value = this.Tilt_Reset;
+            ConfigManager.Increase_FOV.Value = this.Increase_FOV;
+            ConfigManager.Decrease_FOV.Value = this.Decrease_FOV;
+            ConfigManager.Reset_FOV.Value = this.Reset_FOV;
         }
     }
 }

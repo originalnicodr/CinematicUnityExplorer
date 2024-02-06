@@ -3,7 +3,10 @@
 </p>
 
 <p align="center">
-  🔍 An in-game UI for exploring, debugging and modifying Unity games.
+  🎥 Fork of the excellent UnityExplorer mod made by <a href="https://github.com/sinai-dev">sinai-dev</a> focused on providing tools for creating marketing material for Unity games. You can check out the fork features here.
+</p>
+<p align="center">
+  To see the forks features I have worked on so far check out the <a href="#fork-features">Fork Features</a> section.
 </p>
 <p align="center">
   ✔️ Supports most Unity versions from 5.2 to 2021+ (IL2CPP and Mono).
@@ -12,14 +15,14 @@
   ✨ Powered by <a href="https://github.com/yukieiji/UniverseLib">UniverseLib</a>
 </p>
 
-# Releases  [![](https://img.shields.io/github/downloads/sinai-dev/UnityExplorer/total.svg)](../../releases)
+# Releases  [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/total.svg)](../../releases)
 
 [![](https://img.shields.io/github/release/originalnicodr/UnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/workflow/status/originalnicodr/UnityExplorer/Build%20UnityExplorer)](https://github.com/originalnicodr/UnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/latest/total.svg)](../../releases/latest)
+[![](https://img.shields.io/github/release/originalnicodr/UnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/workflow/status/originalnicodr/UnityExplorer/Build%20UnityExplorer)](https://github.com/originalnicodr/UnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/UnityExplorer/latest/total.svg)](../../releases/latest)
 
+⚡ Thunderstore releases: [BepInEx Mono](https://thunderstore.io/package/originalnicodr/UnityExplorer) | [BepInEx IL2CPP](https://gtfo.thunderstore.io/package/originalnicodr/UnityExplorer_IL2CPP) | [MelonLoader IL2CPP](https://boneworks.thunderstore.io/package/originalnicodr/UnityExplorer_IL2CPP_ML)
 
 ## Release schedule
-
-Releases will be posted at most once per week, generally on weekends. 
 
 Nightly builds can be found [here](https://github.com/originalnicodr/UnityExplorer/actions).
 
@@ -32,7 +35,7 @@ Nightly builds can be found [here](https://github.com/originalnicodr/UnityExplor
 | BIE 5.X | ✖️ n/a |  ✖️ n/a |  ✅ [link](https://github.com/originalnicodr/UnityExplorer/releases/latest/download/UnityExplorer.BepInEx5.Mono.zip) |
 
 1. Unzip the release file into a folder
-2. Take the `plugins/sinai-dev-UnityExplorer` folder and place it in `BepInEx/plugins/`
+2. Take the `plugins/originalnicodr-UnityExplorer` folder and place it in `BepInEx/plugins/`
 
 <i>Note: BepInEx 6 is obtainable via [builds.bepinex.dev](https://builds.bepinex.dev/projects/bepinex_be)</i>
 
@@ -56,7 +59,7 @@ Nightly builds can be found [here](https://github.com/originalnicodr/UnityExplor
 
 The standalone release can be used with any injector or loader of your choice, but it requires you to load the dependencies manually.
 
-1. Ensure the required libs are loaded - UniverseLib, HarmonyX and MonoMod. Take them from the [`UnityExplorer.Editor`](https://github.com/sinai-dev/UnityExplorer/releases/latest/download/UnityExplorer.Editor.zip) release if you need them.
+1. Ensure the required libs are loaded - UniverseLib, HarmonyX and MonoMod. Take them from the [`UnityExplorer.Editor`](https://github.com/originalnicodr/UnityExplorer/releases/latest/download/UnityExplorer.Editor.zip) release if you need them.
 2. For IL2CPP, load Il2CppAssemblyUnhollower and start an [Il2CppAssemblyUnhollower runtime](https://github.com/knah/Il2CppAssemblyUnhollower#required-external-setup)
 2. Load the UnityExplorer DLL
 3. Create an instance of Unity Explorer with `UnityExplorer.ExplorerStandalone.CreateInstance();`
@@ -64,7 +67,7 @@ The standalone release can be used with any injector or loader of your choice, b
 
 ## Unity Editor
 
-1. Download the [`UnityExplorer.Editor`](https://github.com/sinai-dev/UnityExplorer/releases/latest/download/UnityExplorer.Editor.zip) release.
+1. Download the [`UnityExplorer.Editor`](https://github.com/originalnicodr/UnityExplorer/releases/latest/download/UnityExplorer.Editor.zip) release.
 2. Install the package, either by using the Package Manager and importing the `package.json` file, or by manually dragging the folder into your `Assets` folder.
 3. Drag the `Runtime/UnityExplorer` prefab into your scene, or create a GameObject and add the `Explorer Editor Behaviour` script to it.
 
@@ -75,7 +78,7 @@ Although UnityExplorer should work out of the box for most Unity games, in some 
 To adjust the settings, open the config file:
 * BepInEx: `BepInEx\config\com.sinai.unityexplorer.cfg`
 * MelonLoader: `UserData\MelonPreferences.cfg`
-* Standalone: `sinai-dev-UnityExplorer\config.cfg`
+* Standalone: `originalnicodr-UnityExplorer\config.cfg`
 
 Try adjusting the following settings and see if it fixes your issues:
 * `Startup_Delay_Time` - increase to 5-10 seconds (or more as needed), can fix issues with UnityExplorer being destroyed or corrupted during startup.
@@ -86,7 +89,7 @@ If these fixes do not work, please create an issue in this repo and I'll do my b
 # Features
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/sinai-dev/UnityExplorer/master/img/preview.png">
+  <a href="https://raw.githubusercontent.com/originalnicodr/UnityExplorer/master/img/preview.png">
     <img src="img/preview.png" />
   </a>
 </p>
@@ -131,7 +134,7 @@ The inspector is used to see detailed information on objects of any type and man
 ### C# Console
 
 * The C# Console uses the `Mono.CSharp.Evaluator` to define temporary classes or run immediate REPL code.
-* You can execute a script automatically on startup by naming it `startup.cs` and placing it in the `sinai-dev-UnityExplorer\Scripts\` folder (this folder will be created where you placed the DLL file).
+* You can execute a script automatically on startup by naming it `startup.cs` and placing it in the `originalnicodr-UnityExplorer\Scripts\` folder (this folder will be created where you placed the DLL file).
 * See the "Help" dropdown in the C# console menu for more detailed information.
 
 ### Hook Manager
@@ -166,7 +169,7 @@ The inspector is used to see detailed information on objects of any type and man
 * You can change the settings via the "Options" tab of the menu, or directly from the config file.
   * BepInEx: `BepInEx\config\com.sinai.unityexplorer.cfg`
   * MelonLoader: `UserData\MelonPreferences.cfg`
-  * Standalone `{DLL_location}\sinai-dev-UnityExplorer\config.cfg`
+  * Standalone `{DLL_location}\originalnicodr-UnityExplorer\config.cfg`
 
 # Building
 
@@ -174,8 +177,42 @@ The inspector is used to see detailed information on objects of any type and man
 
 Building individual configurations from your IDE is fine, though note that the intial build process builds into `Release/<version>/...` instead of the subfolders that the powershell script uses. Batch building is not currently supported with the project.
 
+# Fork Features
+
+Keep in mind this is a WIP and I am still working on ironing out some stuff. To see the things I want to improve head out to the [issues page](https://github.com/originalnicodr/UnityExplorer/issues).
+
+## Improved Freecam
+
+- The Freecam can now move when the game is paused.
+- Added tilt support for the camera with `Q` / `E`
+- Added FoV control support with `Numpad +` / `Numpad -`
+- Added another modifier key to move the camera in smaller increments `Alt`
+- Added a hotkey to pause the game with `Pause` (also called `Break`)
+
+## Lights manager
+
+It allows you to spawn PointLights and SpotLights, as well as toggle the game's original lights to allow you to relight the scene however you want (a task that is pretty common for screenshots and lighting artists). Please note that this only turns off scene lights and won't turn off ambient light, lights created by emissive materials, effects, or shaders.
+
+You can edit the light parameters by opening the object in the Object Explorer tab for now, but I plan on creating its own window to trim the available settings to only the things the user would be interested in.
+
+If you want to move an already created light you can use the "Move to Camera" option after positioning the camera. But if you need to fine-tune its position or orientation you can do so by moving clicking on the Config button, Inspect Game Object, and editing the position and rotation there.
+
+## Camera paths
+
+It allows you to create nodes to build camera paths for videos and cinematics.
+
+Features include:
+
+- Add and delete camera nodes
+- Copy camera position and rotation to a node
+- Copy camera FoV to a node
+- Move the camera position and rotation to the ones in the node
+- Edit the number of frames it takes the camera to move from one specific node to the next.
+- Close the camera path in a loop
+
 # Acknowledgments
 
+* [Sinai-dev](https://github.com/sinai-dev/) for his incredible work on the original UnityExplorer.
 * [ManlyMarco](https://github.com/ManlyMarco) for [Runtime Unity Editor](https://github.com/ManlyMarco/RuntimeUnityEditor) \[[license](THIRDPARTY_LICENSES.md#runtimeunityeditor-license)\], the ScriptEvaluator from RUE's REPL console was used as the base for UnityExplorer's C# console.
 * [Geoffrey Horsington](https://github.com/ghorsington) for [mcs-unity](https://github.com/sinai-dev/mcs-unity) \[no license\], used as the `Mono.CSharp` reference for the C# Console.
 

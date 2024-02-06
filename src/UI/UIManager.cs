@@ -22,7 +22,11 @@ namespace UnityExplorer.UI
             UIInspectorResults,
             HookManager,
             Clipboard,
-            Freecam
+            Freecam,
+            LightsManager,
+            CamPaths,
+            PostProcessingPanel,
+            Misc,
         }
 
         public enum VerticalAnchor
@@ -44,7 +48,7 @@ namespace UnityExplorer.UI
 
         public static RectTransform NavBarRect;
         public static GameObject NavbarTabButtonHolder;
-        private static readonly Vector2 NAVBAR_DIMENSIONS = new(1020f, 35f);
+        private static readonly Vector2 NAVBAR_DIMENSIONS = new(1500f, 35f);
 
         private static ButtonRef closeBtn;
         private static TimeScaleWidget timeScaleWidget;
@@ -89,9 +93,13 @@ namespace UnityExplorer.UI
             UIPanels.Add(Panels.Inspector, new InspectorPanel(UiBase));
             UIPanels.Add(Panels.CSConsole, new CSConsolePanel(UiBase));
             UIPanels.Add(Panels.HookManager, new HookManagerPanel(UiBase));
-            UIPanels.Add(Panels.Freecam, new FreeCamPanel(UiBase));
             UIPanels.Add(Panels.Clipboard, new ClipboardPanel(UiBase));
             UIPanels.Add(Panels.ConsoleLog, new LogPanel(UiBase));
+            UIPanels.Add(Panels.Freecam, new FreeCamPanel(UiBase));
+            UIPanels.Add(Panels.LightsManager, new LightsManager(UiBase));
+            UIPanels.Add(Panels.CamPaths, new CamPaths(UiBase));
+            UIPanels.Add(Panels.PostProcessingPanel, new PostProcessingPanel(UiBase));
+            UIPanels.Add(Panels.Misc, new UnityExplorer.UI.Panels.Misc(UiBase));
             UIPanels.Add(Panels.Options, new OptionsPanel(UiBase));
             UIPanels.Add(Panels.UIInspectorResults, new MouseInspectorResultsPanel(UiBase));
 
@@ -127,7 +135,7 @@ namespace UnityExplorer.UI
             Notification.Update();
 
             // Check forceUnlockMouse toggle
-            if (InputManager.GetKeyDown(ConfigManager.Force_Unlock_Toggle.Value))
+            if (IInputManager.GetKeyDown(ConfigManager.Force_Unlock_Toggle.Value))
                 UniverseLib.Config.ConfigManager.Force_Unlock_Mouse = !UniverseLib.Config.ConfigManager.Force_Unlock_Mouse;
 
             // update the timescale value
@@ -160,6 +168,8 @@ namespace UnityExplorer.UI
         {
             panel.SetActive(active);
         }
+
+        public static TimeScaleWidget GetTimeScaleWidget() { return timeScaleWidget;}
 
         // navbar
 

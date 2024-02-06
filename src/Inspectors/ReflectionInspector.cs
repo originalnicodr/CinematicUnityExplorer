@@ -38,7 +38,7 @@ namespace UnityExplorer.Inspectors
 
         string nameFilter;
         BindingFlags scopeFlagsFilter;
-        MemberFilter memberFilter = MemberFilter.All;
+        public MemberFilter memberFilter = MemberFilter.All;
 
         // Updating
 
@@ -72,7 +72,7 @@ namespace UnityExplorer.Inspectors
         ButtonRef makeGenericButton;
         GenericConstructorWidget genericConstructor;
 
-        InputFieldRef filterInputField;
+        public InputFieldRef filterInputField;
         readonly List<Toggle> memberTypeToggles = new();
         readonly Dictionary<BindingFlags, ButtonRef> scopeFilterButtons = new();
 

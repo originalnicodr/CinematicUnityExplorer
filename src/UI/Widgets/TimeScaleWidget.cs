@@ -10,7 +10,7 @@ using IL2CPPUtils = Il2CppInterop.Common.Il2CppInteropUtils;
 
 namespace UnityExplorer.UI.Widgets
 {
-    internal class TimeScaleWidget
+    public class TimeScaleWidget
     {
         public TimeScaleWidget(GameObject parent)
         {
@@ -26,8 +26,10 @@ namespace UnityExplorer.UI.Widgets
         ButtonRef lockBtn;
         bool locked;
         InputFieldRef timeInput;
-        float desiredTime;
+        float desiredTime = 1;
         bool settingTimeScale;
+        bool pause;
+        Slider slider;
 
         public void Update()
         {
@@ -39,7 +41,23 @@ namespace UnityExplorer.UI.Widgets
                 timeInput.Text = Time.timeScale.ToString("F2");
         }
 
-        void SetTimeScale(float time)
+        public void PauseToggle(){
+            pause = !pause;
+            if (!pause) {
+                SetTimeScale(1f); //or previous timescale
+            }
+            locked = pause;
+            desiredTime = pause ? 0f : 1f;
+            slider.value = desiredTime;
+
+            UpdatePauseButton();
+        }
+
+        public bool IsPaused(){
+            return pause;
+        }
+
+        public void SetTimeScale(float time)
         {
             settingTimeScale = true;
             Time.timeScale = time;
@@ -52,17 +70,32 @@ namespace UnityExplorer.UI.Widgets
         {
             if (float.TryParse(val, out float f))
             {
-                SetTimeScale(f);
                 desiredTime = f;
+                slider.value = f;
             }
         }
 
         void OnPauseButtonClicked()
         {
-            OnTimeInputEndEdit(timeInput.Text);
-
+            if (pause){
+                pause = false;
+                desiredTime = 1f;
+                slider.value = desiredTime;
+                SetTimeScale(desiredTime);
+            }
+            else {
+                OnTimeInputEndEdit(timeInput.Text);
+                // We assume the normal timescale is 1.0, but we will stop setting it on Update() so the game can handle it.
+                SetTimeScale(1.0f);
+            }
+            
             locked = !locked;
 
+            UpdatePauseButton();
+        }
+
+        void UpdatePauseButton()
+        {
             Color color = locked ? new Color(0.3f, 0.3f, 0.2f) : new Color(0.2f, 0.2f, 0.2f);
             RuntimeHelper.SetColorBlock(lockBtn.Component, color, color * 1.2f, color * 0.7f);
             lockBtn.ButtonText.text = locked ? "Unlock" : "Lock";
@@ -81,6 +114,14 @@ namespace UnityExplorer.UI.Widgets
 
             timeInput.Text = string.Empty;
             timeInput.Text = Time.timeScale.ToString();
+
+            GameObject sliderObj = UIFactory.CreateSlider(parent, "Slider_time_scale", out slider);
+            UIFactory.SetLayoutElement(sliderObj, minHeight: 25, minWidth: 75, flexibleWidth: 0);
+            slider.onValueChanged.AddListener((newTimeScale) => desiredTime = newTimeScale);
+            slider.m_FillImage.color = Color.clear;
+            slider.value = 1;
+            slider.minValue = 0f;
+            slider.maxValue = 2f;
 
             lockBtn = UIFactory.CreateButton(parent, "PauseButton", "Lock", new Color(0.2f, 0.2f, 0.2f));
             UIFactory.SetLayoutElement(lockBtn.Component.gameObject, minHeight: 25, minWidth: 50);

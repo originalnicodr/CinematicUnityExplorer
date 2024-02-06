@@ -38,7 +38,7 @@ namespace UnityExplorer.UI.Widgets
             if (control == null)
                 return;
 
-            if (!InputManager.GetMouseButton(0))
+            if (!IInputManager.GetMouseButton(0))
             {
                 control.slider.value = 0f;
                 control = null;

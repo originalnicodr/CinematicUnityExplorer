@@ -227,11 +227,11 @@ namespace UnityExplorer.CSConsole
             if (SRENotSupported)
                 return;
 
-            if (!InputManager.GetKey(KeyCode.LeftControl) && !InputManager.GetKey(KeyCode.RightControl))
+            if (!IInputManager.GetKey(KeyCode.LeftControl) && !IInputManager.GetKey(KeyCode.RightControl))
             {
-                if (InputManager.GetKeyDown(KeyCode.Home))
+                if (IInputManager.GetKeyDown(KeyCode.Home))
                     JumpToStartOrEndOfLine(true);
-                else if (InputManager.GetKeyDown(KeyCode.End))
+                else if (IInputManager.GetKeyDown(KeyCode.End))
                     JumpToStartOrEndOfLine(false);
             }
 
@@ -250,8 +250,8 @@ namespace UnityExplorer.CSConsole
             }
 
             if (EnableCtrlRShortcut
-                && (InputManager.GetKey(KeyCode.LeftControl) || InputManager.GetKey(KeyCode.RightControl))
-                && InputManager.GetKeyDown(KeyCode.R)
+                && (IInputManager.GetKey(KeyCode.LeftControl) || IInputManager.GetKey(KeyCode.RightControl))
+                && IInputManager.GetKeyDown(KeyCode.R)
                 && timeOfLastCtrlR.OccuredEarlierThanDefault())
             {
                 timeOfLastCtrlR = Time.realtimeSinceStartup;
@@ -267,7 +267,7 @@ namespace UnityExplorer.CSConsole
                 return;
 
             // prevent escape wiping input
-            if (InputManager.GetKeyDown(KeyCode.Escape))
+            if (IInputManager.GetKeyDown(KeyCode.Escape))
             {
                 Input.Text = previousInput;
 

@@ -1,4 +1,8 @@
-﻿using UnityExplorer.UI;
+﻿using UnityExplorer.Config;
+using UnityExplorer.UI;
+using UnityExplorer.UI.Panels;
+using UnityExplorer.UI.Widgets;
+using UniverseLib.Input;
 #if CPP
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
@@ -6,6 +10,8 @@ using UnhollowerRuntimeLib;
 using Il2CppInterop.Runtime.Injection;
 #endif
 #endif
+using System;
+
 
 namespace UnityExplorer
 {
@@ -66,6 +72,91 @@ namespace UnityExplorer
                     Destroy(obj);
             }
             catch { }
+        }
+    }
+
+    // Cinematic stuff
+
+    public class KeypressListener : MonoBehaviour
+    {
+        internal static KeypressListener Instance { get; private set; }
+
+#if CPP
+        public KeypressListener(System.IntPtr ptr) : base(ptr) { }
+#endif
+        bool frameSkip;
+
+        internal static void Setup()
+        {
+#if CPP
+            ClassInjector.RegisterTypeInIl2Cpp<KeypressListener>();
+#endif
+
+            GameObject obj = new("KeypressListener");
+            DontDestroyOnLoad(obj);
+            obj.hideFlags = HideFlags.HideAndDontSave;
+            Instance = obj.AddComponent<KeypressListener>();
+        }
+
+        public void Update()
+        {
+            // Continous checks and actions
+            stopFrameSkip();
+            maybeForcePause();
+            UIManager.GetPanel<UnityExplorer.UI.Panels.Misc>(UIManager.Panels.Misc).MaybeTakeScreenshot();
+
+            if (IInputManager.GetKeyDown(ConfigManager.Pause.Value))
+            {
+                UIManager.GetTimeScaleWidget().PauseToggle();
+            }
+
+            // FrameSkip
+            if (IInputManager.GetKeyDown(ConfigManager.Frameskip.Value))
+            {
+                if (UIManager.GetTimeScaleWidget().IsPaused()) {
+                    UIManager.GetTimeScaleWidget().PauseToggle();
+                    frameSkip = true;
+                }
+            }
+
+            if (IInputManager.GetKeyDown(ConfigManager.Screenshot.Value))
+            {
+                UIManager.GetPanel<UnityExplorer.UI.Panels.Misc>(UIManager.Panels.Misc).screenshotStatus = UnityExplorer.UI.Panels.Misc.ScreenshotState.TurnOffUI;
+            }
+
+            if (IInputManager.GetKeyDown(ConfigManager.HUD_Toggle.Value))
+            {
+                UIManager.GetPanel<UnityExplorer.UI.Panels.Misc>(UIManager.Panels.Misc).ToggleHUDElements();
+            }
+
+            if (IInputManager.GetKeyDown(ConfigManager.Freecam_Toggle.Value))
+            {
+                FreeCamPanel.StartStopButton_OnClick();
+            }
+
+            if (IInputManager.GetKeyDown(ConfigManager.Block_Freecam_Movement.Value))
+            {
+                FreeCamPanel.blockFreecamMovementToggle.isOn = !FreeCamPanel.blockFreecamMovementToggle.isOn;
+            }
+
+            if (IInputManager.GetKeyDown(ConfigManager.Toggle_Block_Games_Input.Value))
+            {
+                FreeCamPanel.blockGamesInputOnFreecamToggle.isOn = !FreeCamPanel.blockGamesInputOnFreecamToggle.isOn;
+            }
+        }
+
+        void stopFrameSkip(){
+            if (frameSkip && !UIManager.GetTimeScaleWidget().IsPaused()){
+                frameSkip = false;
+                UIManager.GetTimeScaleWidget().PauseToggle();
+            }
+        }
+
+        void maybeForcePause(){
+            // Force pause no matter the game timescale changes
+            if (UIManager.GetTimeScaleWidget().IsPaused() && Time.timeScale != 0) {
+                UIManager.GetTimeScaleWidget().SetTimeScale(0f);
+            }
         }
     }
 }

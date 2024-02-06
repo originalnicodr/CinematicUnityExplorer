@@ -6,7 +6,7 @@
 
         public abstract void UpdateMouseInspect(Vector2 mousePos);
 
-        public abstract void OnSelectMouseInspect();
+        public abstract void OnSelectMouseInspect(Action<GameObject> inspectorAction);
 
         public abstract void ClearHitData();
 
