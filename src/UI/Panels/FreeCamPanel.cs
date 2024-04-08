@@ -4,6 +4,7 @@ using UnityExplorer.Inspectors;
 using UniverseLib.Input;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
+using System.Runtime.InteropServices;
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
 #endif
@@ -18,6 +19,11 @@ namespace UnityExplorer.UI.Panels
         public FreeCamPanel(UIBase owner) : base(owner)
         {
         }
+
+        private delegate void MoveCameraCallback(float step_left, float step_right, float fov, int from_start);
+
+        [DllImport("UnityIGCSConnector.dll")]
+        private static extern void U_IGCS_Initialize(MoveCameraCallback callback);
 
         public override string Name => "Freecam";
         public override UIManager.Panels PanelType => UIManager.Panels.Freecam;
@@ -75,6 +81,13 @@ namespace UnityExplorer.UI.Panels
         public static Quaternion followObjectLastRotation = Quaternion.identity;
 
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
+
+        private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
+        {
+            if (!lastMainCamera) { return; }
+            float a = lastMainCamera.fieldOfView;
+            ExplorerCore.LogWarning($"Moving camera for IGCS");
+        }
 
         internal static void BeginFreecam()
         {
@@ -172,6 +185,8 @@ namespace UnityExplorer.UI.Panels
                 OnResetPosButtonClicked();
             }
             lastScene = currentScene;
+
+            U_IGCS_Initialize(MoveCameraIGCS);
         }
 
         internal static void EndFreecam()
