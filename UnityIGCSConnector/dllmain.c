@@ -13,6 +13,9 @@ typedef void (*StartSessionCallback)(void);
 MoveCameraCallback GlobalCallback = NULL;
 StartSessionCallback GlobalSessionCallback = NULL;
 
+// There are things that only needs to be run once.
+static int first_initialization = 1;
+
 EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
   printf("Called StartSession\n");
   if (GlobalSessionCallback) GlobalSessionCallback();
@@ -31,20 +34,24 @@ EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, StartSessionCallback start_
   HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
 
   if (!igcs) {
+    MessageBoxA(
+      NULL,
+      "Unable to find IgcsConnector",
+      "IgcsConnector.addon64 was not found, make sure it is in the same directory as the executable.",
+      MB_OK | MB_ICONERROR);
     return;
   }
 
   FARPROC cameraToolsFunction = GetProcAddress(igcs, "connectFromCameraTools");
   FARPROC getCameraData = GetProcAddress(igcs, "getDataFromCameraToolsBuffer");
 
-  if (cameraToolsFunction == NULL) {
-    return;
+  if (first_initialization) {
+    cameraToolsFunction();
+    first_initialization = 0;
   }
 
-  cameraToolsFunction();
-
+  // TODO: move this where it belongs. Maybe at some point we should actually fill in the data.
   uint8_t* cameraData = getCameraData();
-
   cameraData[0] = 1;
 
   printf("Camera connected!\n");

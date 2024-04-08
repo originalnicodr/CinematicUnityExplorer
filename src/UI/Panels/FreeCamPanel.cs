@@ -84,20 +84,28 @@ namespace UnityExplorer.UI.Panels
 
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
 
-        private static Vector3 IGCSPos;
-        private static Vector3 IGCSRight;
-        private static Vector3 IGCSUp;
-        private static Vector3 IGCSForward;
+        private struct VectorHolder
+        {
+            public Vector3 Position { get; }
+            public Vector3 Up { get; }
+            public Vector3 Right { get; }
+
+            public VectorHolder(Vector3 position, Vector3 up, Vector3 right)
+            {
+                Position = position;
+                Up = up;
+                Right = right;
+            }
+        }
+
+        private static VectorHolder IGCSPosition;
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
         {
             if (!ourCamera) { return; }
 
             // Use initial position and calculate new position from it
-            Vector3 newPosition = IGCSPos + (IGCSRight * step_left) + (IGCSUp * step_up);
-            //Vector3 newFocal = newPosition + IGCSForward;
-
-            //ourCamera.transform.LookAt(newFocal);
+            Vector3 newPosition = IGCSPosition.Position + (IGCSPosition.Right * step_left) + (IGCSPosition.Up * step_up);
 
             // Apply the new position
             ourCamera.transform.position = newPosition;
@@ -105,10 +113,8 @@ namespace UnityExplorer.UI.Panels
 
         private static void StartSessionIGCS()
         {
-            IGCSPos = ourCamera.transform.position;
-            IGCSRight = ourCamera.transform.right;
-            IGCSUp = ourCamera.transform.up;
-            IGCSForward = ourCamera.transform.forward;
+            Transform t = ourCamera.transform;
+            IGCSPosition = new VectorHolder(t.position, t.up, t.right);
         }
 
         internal static void BeginFreecam()
