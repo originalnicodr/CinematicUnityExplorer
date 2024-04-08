@@ -7,19 +7,25 @@
 
 // The function that will be the one called from the C# side, that will update the corresponding values.
 typedef void (*MoveCameraCallback)(float, float, float, int);
-MoveCameraCallback GlobalCallback = NULL;
 
+typedef void (*StartSessionCallback)(void);
+
+MoveCameraCallback GlobalCallback = NULL;
+StartSessionCallback GlobalSessionCallback = NULL;
 
 EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
+  printf("Called StartSession\n");
+  if (GlobalSessionCallback) GlobalSessionCallback();
   return 0;
 }
 
 EXPOSE void IGCS_EndScreenshotSession() {}
 
-EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb) {
+EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, StartSessionCallback start_cb) {
   AllocConsole();
   printf("Initializing callback\n");
   GlobalCallback = cb;
+  GlobalSessionCallback = start_cb;
 
   // Load IGCS
   HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
@@ -50,7 +56,7 @@ EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb) {
 EXPOSE void IGCS_MoveCameraPanorama() {}
 
 EXPOSE void IGCS_MoveCameraMultishot(float step_left, float step_up, float fov, int from_start) {
-  printf("%s WAS CALLED\n", __FUNCTION__);
+  printf("step_left: %f\t\tstep_up: %f\t\tfov: %f\t\tfrom_start: %d\n", step_left, step_up, fov, from_start);
   GlobalCallback(step_left, step_up, fov, from_start);
 
   return;
