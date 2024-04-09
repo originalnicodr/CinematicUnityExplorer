@@ -5,7 +5,6 @@ using UniverseLib.Input;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using System.Runtime.InteropServices;
-using Mono.CSharp;
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
 #endif
@@ -86,16 +85,9 @@ namespace UnityExplorer.UI.Panels
 
         private struct VectorHolder
         {
-            public Vector3 Position { get; }
-            public Vector3 Up { get; }
-            public Vector3 Right { get; }
-
-            public VectorHolder(Vector3 position, Vector3 up, Vector3 right)
-            {
-                Position = position;
-                Up = up;
-                Right = right;
-            }
+            public Vector3 Position;
+            public Vector3 Up;
+            public Vector3 Right;
         }
 
         private static VectorHolder IGCSPosition;
@@ -114,7 +106,7 @@ namespace UnityExplorer.UI.Panels
         private static void StartSessionIGCS()
         {
             Transform t = ourCamera.transform;
-            IGCSPosition = new VectorHolder(t.position, t.up, t.right);
+            IGCSPosition = new VectorHolder { Position = t.position, Up = t.up, Right = t.right };
         }
 
         internal static void BeginFreecam()
