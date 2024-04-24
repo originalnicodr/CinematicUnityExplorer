@@ -5,6 +5,7 @@ using UniverseLib.Input;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using System.Runtime.InteropServices;
+using Mono.CSharp;
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
 #endif
@@ -21,10 +22,10 @@ namespace UnityExplorer.UI.Panels
         }
 
         private delegate void MoveCameraCallback(float step_left, float step_up, float fov, int from_start);
-        private delegate void StartSessionCallback();
+        private delegate void SessionCallback();
 
         [DllImport("UnityIGCSConnector.dll")]
-        private static extern void U_IGCS_Initialize(MoveCameraCallback callback, StartSessionCallback start_cb);
+        private static extern void U_IGCS_Initialize(MoveCameraCallback callback, SessionCallback start_cb, SessionCallback end_cb);
 
         public override string Name => "Freecam";
         public override UIManager.Panels PanelType => UIManager.Panels.Freecam;
@@ -83,31 +84,29 @@ namespace UnityExplorer.UI.Panels
 
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
 
-        private struct VectorHolder
-        {
-            public Vector3 Position;
-            public Vector3 Up;
-            public Vector3 Right;
-        }
-
-        private static VectorHolder IGCSPosition;
+        // Store the initial position when a session start in IGCSDof.
+        private static Tuple<Vector3, Quaternion> IGCSPosition;
+        private static bool isBlockedByIGCS = false;
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
         {
             if (!ourCamera) { return; }
 
-            // Use initial position and calculate new position from it
-            Vector3 newPosition = IGCSPosition.Position + (IGCSPosition.Right * step_left) + (IGCSPosition.Up * step_up);
+            ourCamera.transform.position = IGCSPosition.Item1;
+            ourCamera.transform.rotation = IGCSPosition.Item2;
 
-            // Apply the new position
-            ourCamera.transform.position = newPosition;
+            ourCamera.transform.Translate(step_left, step_up, 0.0f);
+            ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
         }
 
         private static void StartSessionIGCS()
         {
             Transform t = ourCamera.transform;
-            IGCSPosition = new VectorHolder { Position = t.position, Up = t.up, Right = t.right };
+            IGCSPosition = new Tuple<Vector3, Quaternion>(t.position, t.rotation);
+            isBlockedByIGCS = true;
         }
+
+        private static void EndSessionIGCS() { isBlockedByIGCS = false; }
 
         internal static void BeginFreecam()
         {
@@ -124,7 +123,7 @@ namespace UnityExplorer.UI.Panels
 
             if (freecamCursorUnlocker == null) freecamCursorUnlocker = new FreecamCursorUnlocker();
             freecamCursorUnlocker.Enable();
-            U_IGCS_Initialize(MoveCameraIGCS, StartSessionIGCS);
+            U_IGCS_Initialize(MoveCameraIGCS, StartSessionIGCS, EndSessionIGCS);
         }
 
         static void CacheMainCamera()
@@ -288,6 +287,9 @@ namespace UnityExplorer.UI.Panels
                 return;
 
             if (positionInput.Component.isFocused)
+                return;
+
+            if (isBlockedByIGCS)
                 return;
 
             lastSetCameraPosition = ourCamera.transform.position;

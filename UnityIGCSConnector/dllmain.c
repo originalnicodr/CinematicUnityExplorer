@@ -8,27 +8,30 @@
 // The function that will be the one called from the C# side, that will update the corresponding values.
 typedef void (*MoveCameraCallback)(float, float, float, int);
 
-typedef void (*StartSessionCallback)(void);
+typedef void (*SessionCallback)(void);
 
 MoveCameraCallback GlobalCallback = NULL;
-StartSessionCallback GlobalSessionCallback = NULL;
+SessionCallback GlobalStartSession = NULL;
+SessionCallback GlobalEndSession = NULL;
 
 // There are things that only needs to be run once.
 static int first_initialization = 1;
 
 EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
-  printf("Called StartSession\n");
-  if (GlobalSessionCallback) GlobalSessionCallback();
+  if (GlobalStartSession) {
+    GlobalStartSession();
+    printf("Called StartSession\n");
+  }
   return 0;
 }
 
 EXPOSE void IGCS_EndScreenshotSession() {}
 
-EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, StartSessionCallback start_cb) {
+EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
   AllocConsole();
   printf("Initializing callback\n");
   GlobalCallback = cb;
-  GlobalSessionCallback = start_cb;
+  GlobalStartSession = start_cb;
 
   // Load IGCS
   HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
