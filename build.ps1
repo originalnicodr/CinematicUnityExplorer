@@ -2,6 +2,8 @@ cd UniverseLib
 .\build.ps1
 cd ..
 
+# ----------- Build UnityIGCSConnector ------------
+msbuild.exe UnityIGCSConnector/UnityIGCSConnector.sln -p:Configuration=Release
 
 # ----------- MelonLoader IL2CPP (net6) -----------
 dotnet build src/CinematicUnityExplorer.sln -c Release_ML_Cpp_net6preview
