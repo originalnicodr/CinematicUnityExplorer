@@ -27,6 +27,7 @@ EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
 
 EXPOSE void IGCS_EndScreenshotSession() {
   GlobalEndSession();
+  printf("Called EndSession\n");
 }
 
 EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {

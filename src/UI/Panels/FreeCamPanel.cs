@@ -88,10 +88,11 @@ namespace UnityExplorer.UI.Panels
         public static Tuple<Vector3, Quaternion> IGCSPosition = new Tuple<Vector3, Quaternion>(new Vector3(), new Quaternion());
 
         // While IGCS dof is in session the camera shouldn't move.
-        public static bool isBlockedByIGCS = false;
+        public static bool isIGCSActive = false;
 
         // Since some games use multithreaded, in order to make sure we're only moving things during
         // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
+        // This object *must* be used with a Lock.
         private static Queue<Tuple<float, float>> commands = new Queue<Tuple<float, float>>();
 
         public static void executeCameraCommand()
@@ -103,9 +104,8 @@ namespace UnityExplorer.UI.Panels
                 ourCamera.transform.position = IGCSPosition.Item1;
                 ourCamera.transform.rotation = IGCSPosition.Item2;
                 ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
+                // ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
             }
-
-            ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
         }
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
@@ -120,10 +120,10 @@ namespace UnityExplorer.UI.Panels
         private static void StartSessionIGCS()
         {
             
-            isBlockedByIGCS = true;
+            isIGCSActive = true;
         }
 
-        private static void EndSessionIGCS() { isBlockedByIGCS = false; }
+        private static void EndSessionIGCS() { isIGCSActive = false; }
 
         internal static void BeginFreecam()
         {
@@ -306,7 +306,7 @@ namespace UnityExplorer.UI.Panels
             if (positionInput.Component.isFocused)
                 return;
 
-            if (isBlockedByIGCS)
+            if (isIGCSActive)
                 return;
 
             lastSetCameraPosition = ourCamera.transform.position;
@@ -727,7 +727,7 @@ namespace UnityExplorer.UI.Panels
 
                 Transform transform = FreeCamPanel.ourCamera.transform;
 
-                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath){
+                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && !FreeCamPanel.isIGCSActive) {
                     ProcessInput();
                 }
 
@@ -749,7 +749,7 @@ namespace UnityExplorer.UI.Panels
 
                 
 
-                if (FreeCamPanel.isBlockedByIGCS) {
+                if (FreeCamPanel.isIGCSActive) {
                     FreeCamPanel.executeCameraCommand();
                 }
                 else
