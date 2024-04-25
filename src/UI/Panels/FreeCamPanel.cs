@@ -85,24 +85,41 @@ namespace UnityExplorer.UI.Panels
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
 
         // Store the initial position when a session start in IGCSDof.
-        private static Tuple<Vector3, Quaternion> IGCSPosition;
-        private static bool isBlockedByIGCS = false;
+        public static Tuple<Vector3, Quaternion> IGCSPosition = new Tuple<Vector3, Quaternion>(new Vector3(), new Quaternion());
+
+        // While IGCS dof is in session the camera shouldn't move.
+        public static bool isBlockedByIGCS = false;
+
+        // Since some games use multithreaded, in order to make sure we're only moving things during
+        // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
+        private static Queue<Tuple<float, float>> commands = new Queue<Tuple<float, float>>();
+
+        public static void executeCameraCommand()
+        {
+            lock(commands)
+            {
+                if (commands.Count <= 0) return;
+                var c = commands.Dequeue();
+                ourCamera.transform.position = IGCSPosition.Item1;
+                ourCamera.transform.rotation = IGCSPosition.Item2;
+                ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
+            }
+
+            ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
+        }
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
         {
             if (!ourCamera) { return; }
 
-            ourCamera.transform.position = IGCSPosition.Item1;
-            ourCamera.transform.rotation = IGCSPosition.Item2;
-
-            ourCamera.transform.Translate(step_left, step_up, 0.0f);
-            ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
+            lock (commands)
+            {
+                commands.Enqueue(new Tuple<float, float>(step_left, step_up));
+            }
         }
-
         private static void StartSessionIGCS()
         {
-            Transform t = ourCamera.transform;
-            IGCSPosition = new Tuple<Vector3, Quaternion>(t.position, t.rotation);
+            
             isBlockedByIGCS = true;
         }
 
@@ -728,6 +745,16 @@ namespace UnityExplorer.UI.Panels
 
                     FreeCamPanel.followObjectLastPosition = FreeCamPanel.followObject.transform.position;
                     FreeCamPanel.followObjectLastRotation = FreeCamPanel.followObject.transform.rotation;
+                }
+
+                
+
+                if (FreeCamPanel.isBlockedByIGCS) {
+                    FreeCamPanel.executeCameraCommand();
+                }
+                else
+                {
+                    FreeCamPanel.IGCSPosition = new Tuple<Vector3, Quaternion>(transform.position, transform.rotation);
                 }
 
                 FreeCamPanel.UpdatePositionInput();

@@ -25,13 +25,16 @@ EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
   return 0;
 }
 
-EXPOSE void IGCS_EndScreenshotSession() {}
+EXPOSE void IGCS_EndScreenshotSession() {
+  GlobalEndSession();
+}
 
 EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
   AllocConsole();
   printf("Initializing callback\n");
   GlobalCallback = cb;
   GlobalStartSession = start_cb;
+  GlobalEndSession = end_cb;
 
   // Load IGCS
   HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
