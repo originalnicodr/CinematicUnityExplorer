@@ -5,13 +5,14 @@ using UniverseLib.Input;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using System.Runtime.InteropServices;
-using Mono.CSharp;
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
 #endif
 #if INTEROP
 using Il2CppInterop.Runtime.Injection;
 #endif
+
+using StepCommand = Mono.CSharp.Tuple<float, float>;
 
 namespace UnityExplorer.UI.Panels
 {
@@ -85,7 +86,7 @@ namespace UnityExplorer.UI.Panels
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
 
         // Store the initial position when a session start in IGCSDof.
-        public static Mono.CSharp.Tuple<Vector3, Quaternion> IGCSPosition = new Mono.CSharp.Tuple<Vector3, Quaternion>(new Vector3(), new Quaternion());
+        public static Mono.CSharp.Tuple<Vector3, Quaternion> IGCSPosition = new(new Vector3(), new Quaternion());
 
         // While IGCS dof is in session the camera shouldn't move.
         public static bool isIGCSActive = false;
@@ -93,7 +94,7 @@ namespace UnityExplorer.UI.Panels
         // Since some games use multithreaded, in order to make sure we're only moving things during
         // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
         // This object *must* be used with a Lock.
-        private static Queue<Mono.CSharp.Tuple<float, float>> commands = new Queue<Mono.CSharp.Tuple<float, float>>();
+        private static Queue<StepCommand> commands = new();
 
         public static void executeCameraCommand()
         {
@@ -104,7 +105,6 @@ namespace UnityExplorer.UI.Panels
                 ourCamera.transform.position = IGCSPosition.Item1;
                 ourCamera.transform.rotation = IGCSPosition.Item2;
                 ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
-                // ourCamera.transform.LookAt(ourCamera.transform.position + ourCamera.transform.forward * 3);
             }
         }
 
@@ -114,7 +114,7 @@ namespace UnityExplorer.UI.Panels
 
             lock (commands)
             {
-                commands.Enqueue(new Mono.CSharp.Tuple<float, float>(step_left, step_up));
+                commands.Enqueue(new StepCommand(step_left, step_up));
             }
         }
         private static void StartSessionIGCS()
