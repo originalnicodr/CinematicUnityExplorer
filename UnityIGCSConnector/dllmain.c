@@ -43,8 +43,8 @@ EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, S
   if (!igcs) {
     MessageBoxA(
       NULL,
-      "Unable to find IgcsConnector",
       "IgcsConnector.addon64 was not found, make sure it is in the same directory as the executable.",
+      "Unable to find IgcsConnector",
       MB_OK | MB_ICONERROR);
     return;
   }
