@@ -101,6 +101,8 @@ namespace UnityExplorer.UI.Panels
         {
             StepCommand c = null;
 
+            if (!ourCamera) { return; }
+
             lock (commands)
             {
                 if (commands.Count <= 0) return;
@@ -114,13 +116,12 @@ namespace UnityExplorer.UI.Panels
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
         {
-            if (!ourCamera) { return; }
-
             lock (commands)
             {
                 commands.Enqueue(new StepCommand(step_left, step_up));
             }
         }
+
         private static void StartSessionIGCS()
         {
             isIGCSActive = true;
