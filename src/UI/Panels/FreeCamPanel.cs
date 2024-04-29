@@ -12,6 +12,7 @@ using UnhollowerRuntimeLib;
 using Il2CppInterop.Runtime.Injection;
 #endif
 
+// StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
 using StepCommand = Mono.CSharp.Tuple<float, float>;
 
 namespace UnityExplorer.UI.Panels
@@ -98,14 +99,17 @@ namespace UnityExplorer.UI.Panels
 
         public static void executeCameraCommand()
         {
-            lock(commands)
+            StepCommand c = null;
+
+            lock (commands)
             {
                 if (commands.Count <= 0) return;
-                var c = commands.Dequeue();
-                ourCamera.transform.position = IGCSPosition.Item1;
-                ourCamera.transform.rotation = IGCSPosition.Item2;
-                ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
+                c = commands.Dequeue();
             }
+
+            ourCamera.transform.position = IGCSPosition.Item1;
+            ourCamera.transform.rotation = IGCSPosition.Item2;
+            ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
         }
 
         private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
@@ -119,11 +123,13 @@ namespace UnityExplorer.UI.Panels
         }
         private static void StartSessionIGCS()
         {
-            
             isIGCSActive = true;
         }
 
-        private static void EndSessionIGCS() { isIGCSActive = false; }
+        private static void EndSessionIGCS() {
+            IGCSPosition = null;
+            isIGCSActive = false;
+        }
 
         internal static void BeginFreecam()
         {
@@ -140,6 +146,7 @@ namespace UnityExplorer.UI.Panels
 
             if (freecamCursorUnlocker == null) freecamCursorUnlocker = new FreecamCursorUnlocker();
             freecamCursorUnlocker.Enable();
+
             U_IGCS_Initialize(MoveCameraIGCS, StartSessionIGCS, EndSessionIGCS);
         }
 
@@ -748,13 +755,13 @@ namespace UnityExplorer.UI.Panels
                 }
 
                 
-
-                if (FreeCamPanel.isIGCSActive) {
-                    FreeCamPanel.executeCameraCommand();
-                }
-                else
+                if (!FreeCamPanel.isIGCSActive || FreeCamPanel.IGCSPosition == null)
                 {
                     FreeCamPanel.IGCSPosition = new Mono.CSharp.Tuple<Vector3, Quaternion>(transform.position, transform.rotation);
+                }
+
+                if (FreeCamPanel.isIGCSActive && FreeCamPanel.IGCSPosition != null) {
+                    FreeCamPanel.executeCameraCommand();
                 }
 
                 FreeCamPanel.UpdatePositionInput();
