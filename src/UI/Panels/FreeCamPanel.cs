@@ -5,6 +5,8 @@ using UniverseLib.Input;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using System.Runtime.InteropServices;
+using CinematicUnityExplorer.Cinematic;
+
 #if UNHOLLOWER
 using UnhollowerRuntimeLib;
 #endif
@@ -22,12 +24,6 @@ namespace UnityExplorer.UI.Panels
         public FreeCamPanel(UIBase owner) : base(owner)
         {
         }
-
-        private delegate void MoveCameraCallback(float step_left, float step_up, float fov, int from_start);
-        private delegate void SessionCallback();
-
-        [DllImport("UnityIGCSConnector.dll")]
-        private static extern void U_IGCS_Initialize(MoveCameraCallback callback, SessionCallback start_cb, SessionCallback end_cb);
 
         public override string Name => "Freecam";
         public override UIManager.Panels PanelType => UIManager.Panels.Freecam;
@@ -86,51 +82,7 @@ namespace UnityExplorer.UI.Panels
 
         private static FreecamCursorUnlocker freecamCursorUnlocker = null;
 
-        // Store the initial position when a session start in IGCSDof.
-        public static Mono.CSharp.Tuple<Vector3, Quaternion> IGCSPosition = new(new Vector3(), new Quaternion());
-
-        // While IGCS dof is in session the camera shouldn't move.
-        public static bool isIGCSActive = false;
-
-        // Since some games use multithreaded, in order to make sure we're only moving things during
-        // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
-        // This object *must* be used with a Lock.
-        private static Queue<StepCommand> commands = new();
-
-        public static void executeCameraCommand()
-        {
-            StepCommand c = null;
-
-            if (!ourCamera) { return; }
-
-            lock (commands)
-            {
-                if (commands.Count <= 0) return;
-                c = commands.Dequeue();
-            }
-
-            ourCamera.transform.position = IGCSPosition.Item1;
-            ourCamera.transform.rotation = IGCSPosition.Item2;
-            ourCamera.transform.Translate(c.Item1, c.Item2, 0.0f);
-        }
-
-        private static void MoveCameraIGCS(float step_left, float step_up, float fov, int from_start)
-        {
-            lock (commands)
-            {
-                commands.Enqueue(new StepCommand(step_left, step_up));
-            }
-        }
-
-        private static void StartSessionIGCS()
-        {
-            isIGCSActive = true;
-        }
-
-        private static void EndSessionIGCS() {
-            IGCSPosition = null;
-            isIGCSActive = false;
-        }
+        public static UnityIGCSConnector connector = new();
 
         internal static void BeginFreecam()
         {
@@ -147,8 +99,6 @@ namespace UnityExplorer.UI.Panels
 
             if (freecamCursorUnlocker == null) freecamCursorUnlocker = new FreecamCursorUnlocker();
             freecamCursorUnlocker.Enable();
-
-            U_IGCS_Initialize(MoveCameraIGCS, StartSessionIGCS, EndSessionIGCS);
         }
 
         static void CacheMainCamera()
@@ -230,8 +180,6 @@ namespace UnityExplorer.UI.Panels
                 OnResetPosButtonClicked();
             }
             lastScene = currentScene;
-
-            
         }
 
         internal static void EndFreecam()
@@ -314,7 +262,7 @@ namespace UnityExplorer.UI.Panels
             if (positionInput.Component.isFocused)
                 return;
 
-            if (isIGCSActive)
+            if (connector.isActive)
                 return;
 
             lastSetCameraPosition = ourCamera.transform.position;
@@ -735,7 +683,7 @@ namespace UnityExplorer.UI.Panels
 
                 Transform transform = FreeCamPanel.ourCamera.transform;
 
-                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && !FreeCamPanel.isIGCSActive) {
+                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && !FreeCamPanel.connector.isActive) {
                     ProcessInput();
                 }
 
@@ -755,15 +703,7 @@ namespace UnityExplorer.UI.Panels
                     FreeCamPanel.followObjectLastRotation = FreeCamPanel.followObject.transform.rotation;
                 }
 
-                
-                if (!FreeCamPanel.isIGCSActive || FreeCamPanel.IGCSPosition == null)
-                {
-                    FreeCamPanel.IGCSPosition = new Mono.CSharp.Tuple<Vector3, Quaternion>(transform.position, transform.rotation);
-                }
-
-                if (FreeCamPanel.isIGCSActive && FreeCamPanel.IGCSPosition != null) {
-                    FreeCamPanel.executeCameraCommand();
-                }
+                FreeCamPanel.connector.executeCameraCommand(FreeCamPanel.ourCamera);
 
                 FreeCamPanel.UpdatePositionInput();
             }
