@@ -259,7 +259,7 @@ namespace UnityExplorer.UI.Panels
             if (positionInput.Component.isFocused)
                 return;
 
-            if (connector.isActive)
+            if (connector.IsActive)
                 return;
 
             lastSetCameraPosition = ourCamera.transform.position;
@@ -680,7 +680,7 @@ namespace UnityExplorer.UI.Panels
 
                 Transform transform = FreeCamPanel.ourCamera.transform;
 
-                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && !FreeCamPanel.connector.isActive) {
+                if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && !FreeCamPanel.connector.IsActive) {
                     ProcessInput();
                 }
 
@@ -700,7 +700,7 @@ namespace UnityExplorer.UI.Panels
                     FreeCamPanel.followObjectLastRotation = FreeCamPanel.followObject.transform.rotation;
                 }
 
-                FreeCamPanel.connector.executeCameraCommand(FreeCamPanel.ourCamera);
+                FreeCamPanel.connector.ExecuteCameraCommand(FreeCamPanel.ourCamera);
 
                 FreeCamPanel.UpdatePositionInput();
             }

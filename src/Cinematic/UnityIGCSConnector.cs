@@ -11,7 +11,7 @@ namespace CinematicUnityExplorer.Cinematic
     // StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
     using StepCommand = Mono.CSharp.Tuple<float, float>;
 
-    static class NativeMethods
+    internal static class NativeMethods
     {
         [DllImport("kernel32.dll")]
         public static extern IntPtr LoadLibrary(string dll);
@@ -29,22 +29,18 @@ namespace CinematicUnityExplorer.Cinematic
         // Store the initial position when a session start in IGCSDof.
         Mono.CSharp.Tuple<Vector3, Quaternion> position = null;
 
-        private bool isValid = false;
+        private readonly bool isValid = false;
         private bool _isActive = false;
-        public bool isActive
-        {
-            get
-            {
-                return isValid && _isActive;
-            }
-        }
+        public bool IsActive => isValid && _isActive;
+
+        private readonly List<System.Delegate> delegates = new();
 
         // Since some games use multithreaded, in order to make sure we're only moving things during
         // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
         // This object *must* be used with a Lock.
-        Queue<StepCommand> commands = new();
+        private readonly Queue<StepCommand> commands = new();
 
-        public void executeCameraCommand(Camera cam)
+        public void ExecuteCameraCommand(Camera cam)
         {
             if (!_isActive || position == null)
             {
@@ -66,11 +62,11 @@ namespace CinematicUnityExplorer.Cinematic
             cam.transform.Translate(c.Item1, c.Item2, 0.0f);
         }
 
-        private void MoveCamera(float step_left, float step_up, float fov, int from_start)
+        private void MoveCamera(float stepLeft, float stepUp, float fov, int fromStart)
         {
             lock (commands)
             {
-                commands.Enqueue(new StepCommand(step_left, step_up));
+                commands.Enqueue(new StepCommand(stepLeft, stepUp));
             }
         }
         private void StartSession()
