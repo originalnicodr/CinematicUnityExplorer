@@ -96,7 +96,7 @@ namespace CinematicUnityExplorer.Cinematic
             var func = NativeMethods.GetProcAddress(lib, @"U_IGCS_Initialize");
             if (func == IntPtr.Zero)
             {
-                throw new EntryPointNotFoundException("Failed to find 'U_IGCS_Initialize' which means you cna have a corrupt UnityIGCSConnector.dll.");
+                throw new EntryPointNotFoundException("Failed to find 'U_IGCS_Initialize' which means you can have a corrupt UnityIGCSConnector.dll.");
             }
 
             var initFunc = (U_IGCS_Initialize)Marshal.GetDelegateForFunctionPointer(func, typeof(U_IGCS_Initialize));
