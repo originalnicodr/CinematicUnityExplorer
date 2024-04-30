@@ -33,9 +33,10 @@ namespace CinematicUnityExplorer.Cinematic
         private bool _isActive = false;
         public bool IsActive => isValid && _isActive;
 
+        // Delegate holder for the MoveCamera, StartSession and EndSession.
         private readonly List<System.Delegate> delegates = new();
 
-        // Since some games use multithreaded, in order to make sure we're only moving things during
+        // Since some games use multi-threaded, in order to make sure we're only moving things during
         // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
         // This object *must* be used with a Lock.
         private readonly Queue<StepCommand> commands = new();
