@@ -56,9 +56,10 @@ namespace CinematicUnityExplorer.Cinematic
 
         public void ExecuteCameraCommand(Camera cam)
         {
+            var transform = cam.transform;
             if (!_isActive || position == null)
             {
-                position = new(cam.transform.position, cam.transform.rotation);
+                position = new(transform.position, transform.rotation);
             }
 
             if (!_isActive || position == null) { return; }
@@ -71,9 +72,9 @@ namespace CinematicUnityExplorer.Cinematic
                 c = commands.Dequeue();
             }
 
-            cam.transform.position = position.Item1;
-            cam.transform.rotation = position.Item2;
-            cam.transform.Translate(c.Item1, c.Item2, 0.0f);
+            transform.position = position.Item1;
+            transform.rotation = position.Item2;
+            transform.Translate(c.Item1, c.Item2, 0.0f);
         }
 
         private void MoveCamera(float stepLeft, float stepUp, float fov, int fromStart)
