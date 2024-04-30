@@ -84,6 +84,7 @@ namespace UnityExplorer.UI.Panels
         internal static void BeginFreecam()
         {
             inFreeCamMode = true;
+            connector.UpdateFreecamStatus(true);
 
             previousMousePosition = IInputManager.MousePosition;
 
@@ -182,6 +183,7 @@ namespace UnityExplorer.UI.Panels
         internal static void EndFreecam()
         {
             inFreeCamMode = false;
+            connector.UpdateFreecamStatus(false);
 
             if (usingGameCamera)
             {

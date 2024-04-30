@@ -24,7 +24,7 @@ namespace CinematicUnityExplorer.Cinematic
         // UnityIGCSConnector.dll definitions.
         private delegate void MoveCameraCallback(float step_left, float step_up, float fov, int from_start);
         private delegate void SessionCallback();
-        private delegate void U_IGCS_Initialize(MoveCameraCallback callback, SessionCallback start_cb, SessionCallback end_cb);
+        private delegate IntPtr U_IGCS_Initialize(MoveCameraCallback callback, SessionCallback start_cb, SessionCallback end_cb);
 
         // Store the initial position when a session start in IGCSDof.
         Mono.CSharp.Tuple<Vector3, Quaternion> position = null;
@@ -39,6 +39,19 @@ namespace CinematicUnityExplorer.Cinematic
         // the main thread is executing, we use this Queue to enqueue the move commands and dequeue them in the Update function.
         // This object *must* be used with a Lock.
         private readonly Queue<StepCommand> commands = new();
+
+        private IntPtr CameraStatus = IntPtr.Zero;
+        // In order to avoid allocations on every Update call, we create this buffer to allocate once
+        // and copy from here the CameraStatus (because Marshal.Copy requires a buffer, urgh).
+        private readonly byte[] CameraStatusBuffer = new byte[] { 0x0 };
+
+        public void UpdateFreecamStatus(bool enabled)
+        {
+            if (CameraStatus == IntPtr.Zero) return;
+
+            CameraStatusBuffer[0] = enabled ? (byte)0x1 : (byte)0x0;
+            Marshal.Copy(CameraStatusBuffer, 0, CameraStatus, 1);
+        }
 
         public void ExecuteCameraCommand(Camera cam)
         {
@@ -101,7 +114,7 @@ namespace CinematicUnityExplorer.Cinematic
             delegates.Add(new SessionCallback(StartSession));
             delegates.Add(new SessionCallback(EndSession));
 
-            initFunc((MoveCameraCallback)delegates[0], (SessionCallback)delegates[1], (SessionCallback)delegates[2]);
+            CameraStatus = initFunc((MoveCameraCallback)delegates[0], (SessionCallback)delegates[1], (SessionCallback)delegates[2]);
             isValid = true;
         }
     }

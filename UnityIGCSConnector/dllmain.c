@@ -30,7 +30,7 @@ EXPOSE void IGCS_EndScreenshotSession() {
   printf("Called EndSession\n");
 }
 
-EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
+EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
   AllocConsole();
   printf("Initializing callback\n");
   GlobalCallback = cb;
@@ -59,11 +59,11 @@ EXPOSE void U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, S
 
   // TODO: move this where it belongs. Maybe at some point we should actually fill in the data.
   uint8_t* cameraData = getCameraData();
-  cameraData[0] = 1;
+  cameraData[0] = 0;
 
   printf("Camera connected!\n");
 
-  return;
+  return cameraData;
 
 }
 
