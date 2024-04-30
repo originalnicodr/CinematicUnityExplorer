@@ -100,8 +100,15 @@ namespace CinematicUnityExplorer.Cinematic
 
             var initFunc = (U_IGCS_Initialize)Marshal.GetDelegateForFunctionPointer(func, typeof(U_IGCS_Initialize));
 
-            initFunc(this.MoveCamera, this.StartSession, this.EndSession);
-            this.isValid = true;
+            var startSession = new SessionCallback(this.StartSession);
+            var endSession = new SessionCallback(this.EndSession);
+            var moveCamera = new MoveCameraCallback(this.MoveCamera);
+
+            var hStartSession = GCHandle.Alloc(startSession, GCHandleType.Pinned);
+            var hEndSession = GCHandle.Alloc(endSession, GCHandleType.Pinned);
+            var hMoveCamera = GCHandle.Alloc(moveCamera, GCHandleType.Pinned);
+            initFunc(moveCamera, startSession, endSession);
+            isValid = true;
         }
     }
 }
