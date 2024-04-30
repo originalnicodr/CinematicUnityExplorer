@@ -8,6 +8,7 @@ using UnityExplorer;
 
 namespace CinematicUnityExplorer.Cinematic
 {
+    // StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
     using StepCommand = Mono.CSharp.Tuple<float, float>;
 
     static class NativeMethods

@@ -14,9 +14,6 @@ using UnhollowerRuntimeLib;
 using Il2CppInterop.Runtime.Injection;
 #endif
 
-// StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
-using StepCommand = Mono.CSharp.Tuple<float, float>;
-
 namespace UnityExplorer.UI.Panels
 {
     public class FreeCamPanel : UEPanel
