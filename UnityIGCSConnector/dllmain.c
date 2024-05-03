@@ -46,7 +46,7 @@ EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_c
       "IgcsConnector.addon64 was not found, make sure it is in the same directory as the executable.",
       "Unable to find IgcsConnector",
       MB_OK | MB_ICONERROR);
-    return;
+    return NULL;
   }
 
   FARPROC cameraToolsFunction = GetProcAddress(igcs, "connectFromCameraTools");

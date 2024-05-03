@@ -117,6 +117,9 @@ namespace CinematicUnityExplorer.Cinematic
             delegates.Add(new SessionCallback(EndSession));
 
             CameraStatus = initFunc((MoveCameraCallback)delegates[0], (SessionCallback)delegates[1], (SessionCallback)delegates[2]);
+            if (CameraStatus == IntPtr.Zero)
+                throw new InvalidDataException("IGCSDof returned an invalid pointer which means something went wrong");
+
             isValid = true;
         }
     }
