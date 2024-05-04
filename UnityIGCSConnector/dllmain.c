@@ -70,9 +70,7 @@ EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_c
 EXPOSE void IGCS_MoveCameraPanorama() {}
 
 EXPOSE void IGCS_MoveCameraMultishot(float step_left, float step_up, float fov, int from_start) {
-  printf("step_left: %f\t\tstep_up: %f\t\tfov: %f\t\tfrom_start: %d\n", step_left, step_up, fov, from_start);
   GlobalCallback(step_left, step_up, fov, from_start);
-
   return;
 }
 
