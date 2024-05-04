@@ -93,6 +93,9 @@ namespace CinematicUnityExplorer.Cinematic
         {
             position = null;
             _isActive = false;
+
+            lock (commands)
+                commands.Clear();
         }
 
         public UnityIGCSConnector()
