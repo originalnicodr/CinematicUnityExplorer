@@ -10,6 +10,8 @@ typedef void (*MoveCameraCallback)(float, float, float, int);
 
 typedef void (*SessionCallback)(void);
 
+typedef uint8_t* (*GetCameraDataFunc)(void);
+
 MoveCameraCallback GlobalCallback = NULL;
 SessionCallback GlobalStartSession = NULL;
 SessionCallback GlobalEndSession = NULL;
@@ -50,7 +52,7 @@ EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_c
   }
 
   FARPROC cameraToolsFunction = GetProcAddress(igcs, "connectFromCameraTools");
-  FARPROC getCameraData = GetProcAddress(igcs, "getDataFromCameraToolsBuffer");
+  GetCameraDataFunc getCameraData = (GetCameraDataFunc)GetProcAddress(igcs, "getDataFromCameraToolsBuffer");
 
   if (first_initialization) {
     cameraToolsFunction();
