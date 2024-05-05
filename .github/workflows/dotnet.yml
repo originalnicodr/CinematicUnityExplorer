@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_dotnet:
     runs-on: windows-latest
     if: "!contains(github.event.head_commit.message, '-noci')"
 
@@ -105,3 +105,29 @@ jobs:
         with:
           name: CinematicUnityExplorer.Editor.zip
           path: ./UnityEditorPackage/
+          
+
+  build_connector:
+    runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '-noci')"
+
+    steps:
+      - name: Checkout latest
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup C/C++
+        uses: TheMrMilchmann/setup-msvc-dev@v3.0.0
+        with:
+          arch: x64
+
+      # Run build script
+      - name: Build Unity IGCS Connector
+        run: ./build_connector.ps1
+
+      - name: Upload Unity IGCS Connector
+        uses: actions/upload-artifact@v3
+        with:
+          name: UnityIGCSConnector.dll
+          path: ./Release/UnityIGCSConnector.dll
