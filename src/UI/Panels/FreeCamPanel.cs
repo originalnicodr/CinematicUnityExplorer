@@ -685,7 +685,7 @@ namespace UnityExplorer.UI.Panels
                     FreeCamPanel.EndFreecam();
                     return;
                 }
-
+                FreeCamPanel.connector.ShouldMoveToOriginalPosition(FreeCamPanel.ourCamera);
                 Transform transform = FreeCamPanel.ourCamera.transform;
 
                 if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && FreeCamPanel.connector?.IsActive != true) {

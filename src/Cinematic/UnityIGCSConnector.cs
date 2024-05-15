@@ -29,6 +29,9 @@ namespace CinematicUnityExplorer.Cinematic
         // Store the initial position when a session start in IGCSDof.
         Mono.CSharp.Tuple<Vector3, Quaternion> position = null;
 
+        // When we end a session, we need to make sure to go back to the position when the session ends.
+        private Mono.CSharp.Tuple<Vector3, Quaternion> endSessionPosition = null;
+
         private readonly bool isValid = false;
         private bool _isActive = false;
         public bool IsActive => isValid && _isActive;
@@ -85,8 +88,24 @@ namespace CinematicUnityExplorer.Cinematic
             _isActive = true;
         }
 
+        // At the EndSession, since we have a queue system, we have to have a special check when the session ends and
+        // then move the camera back to the original position, because the queue gets cleaned as soon as the session
+        // ends.
+        public void ShouldMoveToOriginalPosition(Camera cam)
+        {
+            if (!isValid) return;
+            if (endSessionPosition == null) return;
+
+            var transform = cam.transform;
+            transform.position = endSessionPosition.Item1;
+            transform.rotation = endSessionPosition.Item2;
+
+            endSessionPosition = null;
+        }
+
         private void EndSession()
         {
+            endSessionPosition = position;
             position = null;
             _isActive = false;
 
