@@ -42,16 +42,12 @@ namespace CinematicUnityExplorer.Cinematic
         private readonly Queue<StepCommand> commands = new();
 
         private IntPtr CameraStatus = IntPtr.Zero;
-        // In order to avoid allocations on every Update call, we create this buffer to allocate once
-        // and copy from here the CameraStatus (because Marshal.Copy requires a buffer, urgh).
-        private readonly byte[] CameraStatusBuffer = new byte[] { 0x0 };
 
         public void UpdateFreecamStatus(bool enabled)
         {
             if (CameraStatus == IntPtr.Zero) return;
-
-            CameraStatusBuffer[0] = enabled ? (byte)0x1 : (byte)0x0;
-            Marshal.Copy(CameraStatusBuffer, 0, CameraStatus, 1);
+            
+            Marshal.WriteByte(CameraStatus, enabled ? (byte)0x1 : (byte)0x0);
         }
 
         public void ExecuteCameraCommand(Camera cam)
