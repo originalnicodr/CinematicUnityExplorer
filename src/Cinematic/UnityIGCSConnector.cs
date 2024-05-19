@@ -56,6 +56,10 @@ namespace CinematicUnityExplorer.Cinematic
         public void ExecuteCameraCommand(Camera cam)
         {
             var transform = cam.transform;
+
+            // Check whether we should go back to the original position despite being active or not
+            this.ShouldMoveToOriginalPosition(transform);
+
             if (!_isActive || position == null)
             {
                 position = new(transform.position, transform.rotation);
@@ -91,12 +95,11 @@ namespace CinematicUnityExplorer.Cinematic
         // At the EndSession, since we have a queue system, we have to have a special check when the session ends and
         // then move the camera back to the original position, because the queue gets cleaned as soon as the session
         // ends.
-        public void ShouldMoveToOriginalPosition(Camera cam)
+        public void ShouldMoveToOriginalPosition(Transform transform)
         {
             if (!isValid) return;
             if (endSessionPosition == null) return;
 
-            var transform = cam.transform;
             transform.position = endSessionPosition.Item1;
             transform.rotation = endSessionPosition.Item2;
 
