@@ -161,7 +161,7 @@ namespace UnityExplorer.ObjectExplorer
             if (!string.IsNullOrEmpty(input))
                 nameFilter = input;
 
-            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.FlattenHierarchy;
 
             foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
             {
