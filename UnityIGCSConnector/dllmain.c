@@ -19,7 +19,7 @@ SessionCallback GlobalEndSession = NULL;
 // There are things that only needs to be run once.
 static int first_initialization = 1;
 
-EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
+EXPOSE int __cdecl IGCS_StartScreenshotSession(uint8_t _ignore) {
   if (GlobalStartSession) {
     GlobalStartSession();
     printf("Called StartSession\n");
@@ -27,12 +27,12 @@ EXPOSE int IGCS_StartScreenshotSession(uint8_t _ignore) {
   return 0;
 }
 
-EXPOSE void IGCS_EndScreenshotSession() {
+EXPOSE void __cdecl IGCS_EndScreenshotSession() {
   GlobalEndSession();
   printf("Called EndSession\n");
 }
 
-EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
+EXPOSE uint8_t* __cdecl U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
   AllocConsole();
   printf("Initializing callback\n");
   GlobalCallback = cb;
@@ -73,9 +73,9 @@ EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_c
 
 }
 
-EXPOSE void IGCS_MoveCameraPanorama() {}
+EXPOSE void __cdecl IGCS_MoveCameraPanorama() {}
 
-EXPOSE void IGCS_MoveCameraMultishot(float step_left, float step_up, float fov, int from_start) {
+EXPOSE void __cdecl IGCS_MoveCameraMultishot(float step_left, float step_up, float fov, int from_start) {
   GlobalCallback(step_left, step_up, fov, from_start);
   return;
 }
