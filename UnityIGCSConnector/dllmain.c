@@ -40,7 +40,11 @@ EXPOSE uint8_t* U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_c
   GlobalEndSession = end_cb;
 
   // Load IGCS
+#ifdef _M_IX86
+  HMODULE igcs = LoadLibraryA("IgcsConnector.addon32");
+#else
   HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
+#endif
 
   if (!igcs) {
     MessageBoxA(

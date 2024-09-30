@@ -130,4 +130,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: UnityIGCSConnector.dll
-          path: ./Release/UnityIGCSConnector.dll
+          path: ./UnityIGCSConnector/Release
+
+      - name: Upload Unity IGCS Connector 32bit
+        uses: actions/upload-artifact@v3
+        with:
+          name: UnityIGCSConnector.32.dll
+          path: ./UnityIGCSConnector/Release

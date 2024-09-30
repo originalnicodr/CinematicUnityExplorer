@@ -118,10 +118,11 @@ namespace CinematicUnityExplorer.Cinematic
 
         public UnityIGCSConnector()
         {
-            var lib = NativeMethods.LoadLibrary(@"UnityIGCSConnector.dll");
+            var libraryName = IntPtr.Size == 8 ? @"UnityIGCSConnector.dll" : @"UnityIGCSConnector.32.dll";
+            var lib = NativeMethods.LoadLibrary(libraryName);
             if (lib == IntPtr.Zero) 
             {
-                ExplorerCore.LogWarning("UnityIGCSConnector.dll was not found so IGCSDof will not be available");
+                ExplorerCore.LogWarning($"{libraryName} was not found so IGCSDof will not be available");
                 return;
             }
 
