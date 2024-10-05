@@ -179,7 +179,7 @@ namespace UnityExplorer.ObjectExplorer
                 }
             }
 
-            return instances;
+            return instances.Distinct().ToList();
         }
 
     }
