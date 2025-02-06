@@ -12,6 +12,7 @@ using Il2CppInterop.Runtime.Injection;
 
 using UnityEngine.Rendering;
 using UnityEngine;
+using UnityExplorer.Config;
 
 namespace UnityExplorer.UI.Panels
 {
@@ -158,7 +159,7 @@ namespace UnityExplorer.UI.Panels
             switch(requestedType){
                 case LightType.Spot:
                     lightComponent.range = 10;
-                    GameObject arrow = ArrowGenerator.CreateArrow(Vector3.zero, Quaternion.identity, lightComponent.color, CamPaths.arrowSizeValue);
+                    GameObject arrow = ArrowGenerator.CreateArrow(Vector3.zero, Quaternion.identity, lightComponent.color, ConfigManager.Light_Arrow_Size.Value);
                     arrow.SetActive(false);
                     arrow.transform.SetParent(obj.transform, true);
                     break;
