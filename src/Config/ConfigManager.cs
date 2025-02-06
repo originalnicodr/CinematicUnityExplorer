@@ -32,6 +32,8 @@ namespace UnityExplorer.Config
         public static ConfigElement<bool> Reflection_Hide_NativeInfoPtrs;
         public static ConfigElement<bool> Auto_Scale_UI;
         public static ConfigElement<bool> Reset_Camera_Transform;
+        public static ConfigElement<float> CamPath_Arrow_Size;
+        public static ConfigElement<float> Light_Arrow_Size;
 
         public static ConfigElement<KeyCode> Pause;
         public static ConfigElement<KeyCode> Frameskip;
@@ -167,7 +169,7 @@ namespace UnityExplorer.Config
                 "Optional keybind to begin a UI-mode Mouse Inspect.",
                 KeyCode.None);
 
-            CSConsole_Assembly_Blacklist = new("CSharp Console Assembly Blacklist", 
+            CSConsole_Assembly_Blacklist = new("CSharp Console Assembly Blacklist",
                 "Use this to blacklist Assembly names from being referenced by the C# Console. Requires a Reset of the C# Console.\n" +
                 "Separate each Assembly with a semicolon ';'." +
                 "For example, to blacklist Assembly-CSharp, you would add 'Assembly-CSharp;'",
@@ -178,7 +180,7 @@ namespace UnityExplorer.Config
                 "Seperate signatures with a semicolon ';'.\r\n" +
                 "For example, to blacklist Camera.main, you would add 'UnityEngine.Camera.main;'",
                 "");
-            
+
             Reflection_Hide_NativeInfoPtrs = new("Hide NativeMethodInfoPtr_s and NativeFieldInfoPtr_s",
                 "Use this to blacklist NativeMethodPtr_s and NativeFieldInfoPtrs_s from the class inspector, mainly to reduce clutter.\r\n" +
                 "For example, this will hide 'Class.NativeFieldInfoPtr_value' for the field 'Class.value'.",
@@ -187,7 +189,7 @@ namespace UnityExplorer.Config
             Auto_Scale_UI = new("Make the mod UI automatically scale with resolution",
                 "Especially useful when running games in high resolutions and you are having a hard time reading the mods menu (requires restart).",
                 true);
-            
+
             Reset_Camera_Transform = new("Reset Camera transform on freecam disable",
                 "Reset the camera position and rotation between freecam sessions, so the freecam always starts from the gameplay position and rotation.",
                 false);
@@ -195,7 +197,7 @@ namespace UnityExplorer.Config
             Pause = new("Pause",
                 "Toggle the pause of the game.",
                 KeyCode.PageUp);
-            
+
             Frameskip = new("Frameskip",
                 "Skip a frame when the game is paused.",
                 KeyCode.PageDown);
@@ -249,7 +251,7 @@ namespace UnityExplorer.Config
             Left_1 = new("Left 1",
                 "Move the freecam to the left.",
                 KeyCode.A);
-            
+
             Left_2 = new("Left 2",
                 "Move the freecam to the left, alt key.",
                 KeyCode.LeftArrow);
@@ -301,6 +303,14 @@ namespace UnityExplorer.Config
             Default_Freecam = new("Default Freecam mode",
                 "Default type of freecam selected on startup (gets automatically updated with the last type of camera used).",
                 FreeCamPanel.FreeCameraType.New);
+
+            CamPath_Arrow_Size = new("Cam Paths Arrow Size",
+                "Cam Paths Visualize Path's Arrow Size",
+                1f);
+
+            Light_Arrow_Size = new("LightsManager Arrow Size",
+                "LightsManager Toggle Visualizer's Arrow Size",
+                1f);
         }
     }
 }

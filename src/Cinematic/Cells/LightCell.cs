@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityExplorer.Config;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using UniverseLib.UI.Widgets.ScrollView;
@@ -69,7 +70,7 @@ namespace UnityExplorer.UI.Panels
 
         private void ToggleVisualizer(){
             GameObject visualizer = light.transform.GetChild(0).gameObject;
-            light.transform.GetChild(0).localScale = new Vector3(CamPaths.arrowSizeValue, CamPaths.arrowSizeValue, CamPaths.arrowSizeValue);
+            light.transform.GetChild(0).localScale = new Vector3(ConfigManager.Light_Arrow_Size.Value, ConfigManager.Light_Arrow_Size.Value, ConfigManager.Light_Arrow_Size.Value);
             visualizer.SetActive(!visualizer.activeSelf);
         }
 

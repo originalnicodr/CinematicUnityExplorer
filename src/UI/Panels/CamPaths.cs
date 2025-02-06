@@ -1,4 +1,5 @@
 ﻿using UnityEngine.SceneManagement;
+using UnityExplorer.Config;
 using UnityExplorer.Serializers;
 using UniverseLib.Input;
 using UniverseLib.UI;
@@ -30,7 +31,6 @@ namespace UnityExplorer.UI.Panels
             // CatmullRom Constants
             alphaCatmullRomSlider = new Slider();
             tensionCatmullRomSlider = new Slider();
-            arrowSizeSlider = new Slider();
         }
 
         public override string Name => "Cam Paths";
@@ -64,10 +64,6 @@ namespace UnityExplorer.UI.Panels
         InputFieldRef tensionCatmullRomInput;
         Slider tensionCatmullRomSlider;
         float tensionCatmullRomValue = 0;
-
-        InputFieldRef arrowSizeInput;
-        Slider arrowSizeSlider;
-        public static float arrowSizeValue = 1.0f;
 
         private InputFieldRef saveLoadInputField;
         private Toggle loadPathOnCamToggle;
@@ -214,25 +210,6 @@ namespace UnityExplorer.UI.Panels
                 MaybeRedrawPath();
             });
 
-            // CatmullRom tension value
-            AddInputField("arrowSize", "ArrowSize:", "1.0", out arrowSizeInput, ArrowSize_OnEndEdit, 50, thridRow);
-            arrowSizeInput.Text = arrowSizeValue.ToString();
-
-            GameObject arrowSizeObj = UIFactory.CreateSlider(thridRow, "Arrow Size Slider", out arrowSizeSlider);
-            UIFactory.SetLayoutElement(arrowSizeObj, minHeight: 25, minWidth: 100, flexibleWidth: 0);
-            arrowSizeSlider.m_FillImage.color = Color.clear;
-            arrowSizeSlider.minValue = 0;
-            arrowSizeSlider.maxValue = 100;
-            arrowSizeSlider.value = arrowSizeValue;
-            arrowSizeSlider.onValueChanged.AddListener((newArrowSize) => {
-                arrowSizeValue = newArrowSize;
-                arrowSizeInput.Text = arrowSizeValue.ToString("0.00");
-
-                MaybeRedrawPath();
-            });
-
-
-
             GameObject fourthRow = UIFactory.CreateHorizontalGroup(ContentRoot, "SerializationOptions", false, false, true, true, 3,
                 default, new Color(1, 1, 1, 0), TextAnchor.MiddleLeft);
             UIFactory.SetLayoutElement(fourthRow, minHeight: 25, flexibleWidth: 9999);
@@ -293,22 +270,6 @@ namespace UnityExplorer.UI.Panels
             EventSystemHelper.SetSelectedGameObject(null);
         }
 
-        void ArrowSize_OnEndEdit(string input)
-        {
-            if (!ParseUtility.TryParse(input, out float parsed, out Exception parseEx))
-            {
-                ExplorerCore.LogWarning($"Could not parse value: {parseEx.ReflectionExToString()}");
-                arrowSizeInput.Text = arrowSizeValue.ToString();
-                return;
-            }
-
-            arrowSizeValue = parsed;
-            arrowSizeSlider.value = arrowSizeValue;
-
-            MaybeRedrawPath();
-            EventSystemHelper.SetSelectedGameObject(null);
-        }
-
         private void ToggleVisualizePath(bool enable){
             // Had to include this check because the pathVisualizer was null for some reason
             if (enable){
@@ -338,7 +299,7 @@ namespace UnityExplorer.UI.Panels
                         if (followObject != null && FreeCamPanel.followRotationToggle.isOn) arrowRot = followObject.transform.rotation * arrowRot;
 
                         // We could expose the color of the arrow to a setting
-                        GameObject arrow = ArrowGenerator.CreateArrow(arrowPos, arrowRot, Color.green, arrowSizeValue);
+                        GameObject arrow = ArrowGenerator.CreateArrow(arrowPos, arrowRot, Color.green, ConfigManager.CamPath_Arrow_Size.Value);
                         arrow.transform.SetParent(pathVisualizer.transform, true);
                         n = 0;
                     }
