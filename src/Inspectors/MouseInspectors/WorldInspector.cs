@@ -1,11 +1,14 @@
-﻿using UnityExplorer.UI.Panels;
+﻿using System.Collections;
+using UnityExplorer.UI;
+using UnityExplorer.UI.Panels;
 
 namespace UnityExplorer.Inspectors.MouseInspectors
 {
     public class WorldInspector : MouseInspectorBase
     {
         private static Camera MainCamera;
-        private static GameObject lastHitObject;
+        public static readonly List<GameObject> LastHitObjects = new();
+        private static readonly List<GameObject> currentHitObjects = new();
 
         public override void OnBeginMouseInspect()
         {
@@ -31,12 +34,22 @@ namespace UnityExplorer.Inspectors.MouseInspectors
 
         public override void ClearHitData()
         {
-            lastHitObject = null;
+            currentHitObjects.Clear();
         }
 
         public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
         {
-            inspectorAction(lastHitObject);
+            LastHitObjects.Clear();
+            LastHitObjects.AddRange(currentHitObjects);
+            RuntimeHelper.StartCoroutine(SetPanelActiveCoro());
+        }
+
+        IEnumerator SetPanelActiveCoro()
+        {
+            yield return null;
+            WorldInspectorResultsPanel panel = UIManager.GetPanel<WorldInspectorResultsPanel>(UIManager.Panels.WorldInspectorResults);
+            panel.SetActive(true);
+            panel.ShowResults();
         }
 
         /// <summary>
@@ -82,6 +95,8 @@ namespace UnityExplorer.Inspectors.MouseInspectors
 
         public override void UpdateMouseInspect(Vector2 mousePos)
         {
+            currentHitObjects.Clear();
+
             // Attempt to ensure camera each time UpdateMouseInspect is called
             // in case something changed or wasn't set initially.
             if (!EnsureMainCamera())
@@ -92,22 +107,35 @@ namespace UnityExplorer.Inspectors.MouseInspectors
             }
 
             Ray ray = MainCamera.ScreenPointToRay(mousePos);
-            Physics.Raycast(ray, out RaycastHit hit, 1000f);
+            var tmp = new Vector3(ray.origin.x, ray.origin.y, 0f);
+            ray.origin = tmp;
 
-            if (hit.transform)
-                OnHitGameObject(hit.transform.gameObject);
-            else if (lastHitObject)
-                MouseInspector.Instance.ClearHitData();
+            RaycastHit2D[] hits = Physics2D.RaycastAll(ray.origin, ray.direction, Mathf.Infinity, Physics2D.DefaultRaycastLayers);
+
+            if (hits.Length > 0)
+            {
+                foreach (var hit in hits)
+                {
+                    if (hit.collider != null)
+                    {
+                        if (hit.collider.gameObject)
+                        {
+                            currentHitObjects.Add(hit.collider.gameObject);
+                        }
+                    }
+                }
+            }
+
+            OnHitGameObject();
         }
 
-        internal void OnHitGameObject(GameObject obj)
+        internal void OnHitGameObject()
         {
-            if (obj != lastHitObject)
-            {
-                lastHitObject = obj;
-                MouseInspector.Instance.UpdateObjectNameLabel($"<b>Click to Inspect:</b> <color=cyan>{obj.name}</color>");
-                MouseInspector.Instance.UpdateObjectPathLabel($"Path: {obj.transform.GetTransformPath(true)}");
-            }
+            if(currentHitObjects.Any())
+                MouseInspector.Instance.UpdateObjectNameLabel($"Click to view World Objects under mouse: {currentHitObjects.Count}");
+            else
+                MouseInspector.Instance.UpdateObjectNameLabel($"No World objects under mouse.");
+
         }
 
         public override void OnEndInspect()
