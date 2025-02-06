@@ -12,14 +12,10 @@ namespace UnityExplorer
 {
     public class ArrowGenerator
     {
-        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color, float arrowSizeValue = 1f)
+        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color, float arrowSizeValue)
         {
             try {
-                Vector3 arrowSize;
-                if (arrowSizeValue > 0)
-                    arrowSize = new Vector3(arrowSizeValue, arrowSizeValue, arrowSizeValue);
-                else
-                    arrowSize = new Vector3(1f, 1f, 1f);
+                Vector3 arrowSize = new Vector3(Math.Abs(arrowSizeValue), Math.Abs(arrowSizeValue), Math.Abs(arrowSizeValue));
 
                 GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 cylinder.GetComponent<Collider>().enabled = false;
