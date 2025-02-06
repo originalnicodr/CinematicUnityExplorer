@@ -69,6 +69,7 @@ namespace UnityExplorer.UI.Panels
 
         private void ToggleVisualizer(){
             GameObject visualizer = light.transform.GetChild(0).gameObject;
+            light.transform.GetChild(0).localScale = new Vector3(CamPaths.arrowSizeValue, CamPaths.arrowSizeValue, CamPaths.arrowSizeValue);
             visualizer.SetActive(!visualizer.activeSelf);
         }
 

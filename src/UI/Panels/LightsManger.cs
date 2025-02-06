@@ -158,7 +158,7 @@ namespace UnityExplorer.UI.Panels
             switch(requestedType){
                 case LightType.Spot:
                     lightComponent.range = 10;
-                    GameObject arrow = ArrowGenerator.CreateArrow(Vector3.zero, Quaternion.identity, lightComponent.color);
+                    GameObject arrow = ArrowGenerator.CreateArrow(Vector3.zero, Quaternion.identity, lightComponent.color, CamPaths.arrowSizeValue);
                     arrow.SetActive(false);
                     arrow.transform.SetParent(obj.transform, true);
                     break;

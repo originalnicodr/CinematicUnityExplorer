@@ -12,8 +12,15 @@ namespace UnityExplorer
 {
     public class ArrowGenerator
     {
-        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color){
+        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color, float arrowSizeValue = 1f)
+        {
             try {
+                Vector3 arrowSize;
+                if (arrowSizeValue > 0)
+                    arrowSize = new Vector3(arrowSizeValue, arrowSizeValue, arrowSizeValue);
+                else
+                    arrowSize = new Vector3(1f, 1f, 1f);
+
                 GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 cylinder.GetComponent<Collider>().enabled = false;
                 cylinder.GetComponent<MeshFilter>().mesh = CreateCylinderMesh(0.01f, 20, 2);
@@ -34,6 +41,7 @@ namespace UnityExplorer
 
                 GameObject arrow = new GameObject("CUE-Arrow");
                 cylinder.transform.SetParent(arrow.transform, true);
+                arrow.transform.localScale = arrowSize;
                 arrow.transform.position = arrowPosition;
                 arrow.transform.rotation = arrowRotation;
                 arrow.transform.position += 0.5f * arrow.transform.forward; // Move the arrow forward so the cylinder starts on the wanted position
