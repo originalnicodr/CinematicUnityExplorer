@@ -32,8 +32,7 @@ namespace UnityExplorer.Config
         public static ConfigElement<bool> Reflection_Hide_NativeInfoPtrs;
         public static ConfigElement<bool> Auto_Scale_UI;
         public static ConfigElement<bool> Reset_Camera_Transform;
-        public static ConfigElement<float> CamPath_Arrow_Size;
-        public static ConfigElement<float> Light_Arrow_Size;
+        public static ConfigElement<float> Arrow_Size;
 
         public static ConfigElement<KeyCode> Pause;
         public static ConfigElement<KeyCode> Frameskip;
@@ -193,6 +192,10 @@ namespace UnityExplorer.Config
             Reset_Camera_Transform = new("Reset Camera transform on freecam disable",
                 "Reset the camera position and rotation between freecam sessions, so the freecam always starts from the gameplay position and rotation.",
                 false);
+            
+            Arrow_Size = new("Visualizers arrows size",
+                "Cam Paths nodes and Lights Manager lights visualizers' arrow size (must be positive) (needs visualizer toggled to reflect changes).",
+                1f);
 
             Pause = new("Pause",
                 "Toggle the pause of the game.",
@@ -303,14 +306,6 @@ namespace UnityExplorer.Config
             Default_Freecam = new("Default Freecam mode",
                 "Default type of freecam selected on startup (gets automatically updated with the last type of camera used).",
                 FreeCamPanel.FreeCameraType.New);
-
-            CamPath_Arrow_Size = new("Cam Paths Arrow Size",
-                "Cam Paths Visualize Path's Arrow Size",
-                1f);
-
-            Light_Arrow_Size = new("LightsManager Arrow Size",
-                "LightsManager Toggle Visualizer's Arrow Size",
-                1f);
         }
     }
 }

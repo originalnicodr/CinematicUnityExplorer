@@ -1,6 +1,7 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityExplorer.Config;
 #if UNHOLLOWER
 using IL2CPPUtils = UnhollowerBaseLib.UnhollowerUtils;
 #endif
@@ -12,10 +13,11 @@ namespace UnityExplorer
 {
     public class ArrowGenerator
     {
-        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color, float arrowSizeValue)
+        public static GameObject CreateArrow(Vector3 arrowPosition, Quaternion arrowRotation, Color color)
         {
             try {
-                Vector3 arrowSize = new Vector3(Math.Abs(arrowSizeValue), Math.Abs(arrowSizeValue), Math.Abs(arrowSizeValue));
+                float arrowSizeValue = ConfigManager.Arrow_Size.Value;
+                Vector3 arrowSize = new Vector3(Math.Max(arrowSizeValue, 0.1f), Math.Max(arrowSizeValue, 0.1f), Math.Max(arrowSizeValue, 0.1f));
 
                 GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 cylinder.GetComponent<Collider>().enabled = false;

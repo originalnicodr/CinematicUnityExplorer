@@ -70,8 +70,8 @@ namespace UnityExplorer.UI.Panels
 
         private void ToggleVisualizer(){
             GameObject visualizer = light.transform.GetChild(0).gameObject;
-            float arrowSize = ConfigManager.Light_Arrow_Size.Value;
-            Vector3 arrowSizeVec = new Vector3(Math.Abs(arrowSize), Math.Abs(arrowSize), Math.Abs(arrowSize));
+            float arrowSize = ConfigManager.Arrow_Size.Value;
+            Vector3 arrowSizeVec = new Vector3(Math.Max(arrowSize, 0.1f), Math.Max(arrowSize, 0.1f), Math.Max(arrowSize, 0.1f));
             light.transform.GetChild(0).localScale = arrowSizeVec;
             visualizer.SetActive(!visualizer.activeSelf);
         }

@@ -30,6 +30,7 @@ namespace UnityExplorer.Loader.Standalone
         public bool Auto_Scale_UI;
         public bool Reset_Camera_Transform;
         public FreeCamPanel.FreeCameraType Default_Freecam;
+        public float Arrow_Size = 1f;
 
         public KeyCode Pause;
         public KeyCode Frameskip;
@@ -87,6 +88,7 @@ namespace UnityExplorer.Loader.Standalone
             ConfigManager.Auto_Scale_UI.Value = this.Auto_Scale_UI;
             ConfigManager.Reset_Camera_Transform.Value = this.Reset_Camera_Transform;
             ConfigManager.Default_Freecam.Value = this.Default_Freecam;
+            ConfigManager.Arrow_Size.Value = this.Arrow_Size;
 
             ConfigManager.Pause.Value = this.Pause;
             ConfigManager.Frameskip.Value = this.Frameskip;

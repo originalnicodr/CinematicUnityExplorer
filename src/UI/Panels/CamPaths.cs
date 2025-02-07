@@ -1,5 +1,4 @@
 ﻿using UnityEngine.SceneManagement;
-using UnityExplorer.Config;
 using UnityExplorer.Serializers;
 using UniverseLib.Input;
 using UniverseLib.UI;
@@ -299,7 +298,7 @@ namespace UnityExplorer.UI.Panels
                         if (followObject != null && FreeCamPanel.followRotationToggle.isOn) arrowRot = followObject.transform.rotation * arrowRot;
 
                         // We could expose the color of the arrow to a setting
-                        GameObject arrow = ArrowGenerator.CreateArrow(arrowPos, arrowRot, Color.green, ConfigManager.CamPath_Arrow_Size.Value);
+                        GameObject arrow = ArrowGenerator.CreateArrow(arrowPos, arrowRot, Color.green);
                         arrow.transform.SetParent(pathVisualizer.transform, true);
                         n = 0;
                     }
