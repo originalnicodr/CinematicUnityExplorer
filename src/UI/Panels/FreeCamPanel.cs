@@ -37,7 +37,7 @@ namespace UnityExplorer.UI.Panels
 
         public override string Name => "Freecam";
         public override UIManager.Panels PanelType => UIManager.Panels.Freecam;
-        public override int MinWidth => 450;
+        public override int MinWidth => 500;
         public override int MinHeight => 750;
         public override Vector2 DefaultAnchorMin => new(0.4f, 0.4f);
         public override Vector2 DefaultAnchorMax => new(0.6f, 0.6f);
@@ -68,6 +68,7 @@ namespace UnityExplorer.UI.Panels
 
         static ButtonRef startStopButton;
         public static Dropdown cameraTypeDropdown;
+        internal static Dropdown targetCameraDropdown;
         internal static FreeCameraType currentCameraType;
         public static Toggle blockFreecamMovementToggle;
         public static Toggle blockGamesInputOnFreecamToggle;
@@ -103,13 +104,14 @@ namespace UnityExplorer.UI.Panels
 
         internal static void BeginFreecam()
         {
-            inFreeCamMode = true;
             connector?.UpdateFreecamStatus(true);
 
             previousMousePosition = IInputManager.MousePosition;
-
             CacheMainCamera();
             SetupFreeCamera();
+
+            // Need to be done after CacheMainCamera to not trigger targetCameraDropdown onValueChanged
+            inFreeCamMode = true;
 
             inspectButton.GameObject.SetActive(true);
 
@@ -119,9 +121,58 @@ namespace UnityExplorer.UI.Panels
             freecamCursorUnlocker.Enable();
         }
 
-        static void CacheMainCamera()
+        private static Camera[] GetAvailableCameras()
+        {
+            Camera[] cameras = {};
+            try
+            {
+                cameras = Camera.allCameras;
+            }
+            // Some ILCPP games might not have Camera.allCameras available
+            catch {
+                cameras = RuntimeHelper.FindObjectsOfTypeAll<Camera>();
+            }
+
+            return cameras;
+        }
+
+        private static Camera GetTargetCamera()
         {
             Camera currentMain = Camera.main;
+            Camera[] cameras = GetAvailableCameras();
+
+            // If the list of camera was updated since the last time we checked, update the dropdown and select the current main camera if available
+            // Could filter out CUE camera here, but we shouldnt reach a point where the CUE camera is alive at this point
+            if (!cameras.Select(c => c.name).SequenceEqual(targetCameraDropdown.options.ToArray().Select(c => c.text))) 
+            {
+                targetCameraDropdown.options.Clear();
+                for (int i = 0; i < cameras.Length; i++)
+                {
+                    Camera cam = cameras[i];
+                    targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
+
+                    if (currentMain && cam == currentMain)
+                    {
+                        targetCameraDropdown.value = i;
+                        targetCameraDropdown.captionText.text = cam.name;
+                    }
+                }
+            }
+
+            // Fallback to the first camera
+            if (targetCameraDropdown.value >= cameras.Length)
+            {
+                ExplorerCore.LogWarning($"Selected camera index {targetCameraDropdown.value} is out of bounds, resetting to 0.");
+                targetCameraDropdown.value = 0; 
+            }
+
+            return cameras[targetCameraDropdown.value];
+        }
+
+        static void CacheMainCamera()
+        {
+            Camera currentMain = GetTargetCamera();
+
             if (currentMain)
             {
                 lastMainCamera = currentMain;
@@ -262,6 +313,12 @@ namespace UnityExplorer.UI.Panels
 
         internal static void EndFreecam()
         {
+            if (ourCamera == null)
+            {
+                ExplorerCore.LogWarning("EndFreecam called but ourCamera is null, returning.");
+                return;
+            }
+
             inFreeCamMode = false;
             connector?.UpdateFreecamStatus(false);
 
@@ -292,8 +349,8 @@ namespace UnityExplorer.UI.Panels
                     MaybeToggleOrthographic(true);
                     ToggleCustomComponents(true);
                     MethodInfo resetCullingMatrixMethod = typeof(Camera).GetMethod("ResetCullingMatrix", new Type[] {});
-                    resetCullingMatrixMethod.Invoke(ourCamera, null);
 
+                    resetCullingMatrixMethod.Invoke(ourCamera, null);
                     ourCamera.ResetWorldToCameraMatrix();
                     ourCamera.ResetProjectionMatrix();
                     ourCamera = null;
@@ -327,6 +384,14 @@ namespace UnityExplorer.UI.Panels
                 lastMainCamera.enabled = true;
 
             freecamCursorUnlocker.Disable();
+        }
+
+        internal static void MaybeResetFreecam()
+        {
+            if (inFreeCamMode) {
+                EndFreecam();
+                BeginFreecam();
+            }
         }
 
         // Experimental feature to automatically disable cinemachine when turning on the gameplay freecam.
@@ -433,20 +498,42 @@ namespace UnityExplorer.UI.Panels
             GameObject CameraModeRow = UIFactory.CreateHorizontalGroup(ContentRoot, "CameraModeRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
 
             Text CameraMode = UIFactory.CreateLabel(CameraModeRow, "Camera Mode", "Camera Mode:");
-            UIFactory.SetLayoutElement(CameraMode.gameObject, minWidth: 100, minHeight: 25);
+            UIFactory.SetLayoutElement(CameraMode.gameObject, minWidth: 75, minHeight: 25);
 
             GameObject cameraTypeDropdownObj = UIFactory.CreateDropdown(CameraModeRow, "CameraType_Dropdown", out cameraTypeDropdown, null, 14, (idx) => {
                 ConfigManager.Default_Freecam.Value = (FreeCameraType)idx;
-                if (inFreeCamMode) {
-                    EndFreecam();
-                    BeginFreecam();
-                }
+                MaybeResetFreecam();
             });
             foreach (FreeCameraType type in Enum.GetValues(typeof(FreeCameraType)).Cast<FreeCameraType>()) {
                 cameraTypeDropdown.options.Add(new Dropdown.OptionData(Enum.GetName(typeof(FreeCameraType), type)));
             }
             UIFactory.SetLayoutElement(cameraTypeDropdownObj, minHeight: 25, minWidth: 150);
             cameraTypeDropdown.value = (int)ConfigManager.Default_Freecam.Value;
+
+            Text TargetCamLabel = UIFactory.CreateLabel(CameraModeRow, "Target_cam_label", " Target cam:");
+            UIFactory.SetLayoutElement(TargetCamLabel.gameObject, minWidth: 75, minHeight: 25);
+
+            GameObject targetCameraDropdownObj = UIFactory.CreateDropdown(CameraModeRow, "TargetCamera_Dropdown", out targetCameraDropdown, null, 14, null);
+
+            targetCameraDropdown.onValueChanged.AddListener(delegate {
+                MaybeResetFreecam();
+            });
+
+            try {
+                Camera[] cameras = GetAvailableCameras();
+                foreach (Camera cam in cameras) {
+                    targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
+                }
+                if (Camera.main) {
+                    targetCameraDropdown.value = Array.IndexOf(cameras, Camera.main);
+                    targetCameraDropdown.captionText.text = Camera.main.name;
+                }
+            }
+            catch (Exception ex) {
+                ExplorerCore.LogWarning(ex);
+            }
+
+            UIFactory.SetLayoutElement(targetCameraDropdownObj, minHeight: 25, minWidth: 150);
 
             AddSpacer(5);
 
@@ -1226,48 +1313,65 @@ namespace UnityExplorer.UI.Panels
             }
 #endif
 
-            try
-            {
-                // These doesn't exist for Unity <2017 nor when using HDRP
-                Type renderPipelineManagerType = ReflectionUtility.GetTypeByName("RenderPipelineManager");
-                if (renderPipelineManagerType != null){
+            // These doesn't exist for Unity <2017 nor when using HDRP
+            Type renderPipelineManagerType = ReflectionUtility.GetTypeByName("RenderPipelineManager");
+            if (renderPipelineManagerType != null){
+                try {
                     EventInfo beginFrameRenderingEvent = renderPipelineManagerType.GetEvent("beginFrameRendering");
                     if (beginFrameRenderingEvent != null) {
                         beginFrameRenderingEvent.AddEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+
+                try {
                     EventInfo endFrameRenderingEvent = renderPipelineManagerType.GetEvent("endFrameRendering");
                     if (endFrameRenderingEvent != null) {
                         endFrameRenderingEvent.AddEventHandler(null, OnAfterEvent);
                     }
+                }
+                catch { }
 
+                try {
                     EventInfo beginCameraRenderingEvent = renderPipelineManagerType.GetEvent("beginCameraRendering");
                     if (beginCameraRenderingEvent != null) {
                         beginCameraRenderingEvent.AddEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+
+                try {
                     EventInfo endCameraRenderingEvent = renderPipelineManagerType.GetEvent("endCameraRendering");
                     if (endCameraRenderingEvent != null) {
                         endCameraRenderingEvent.AddEventHandler(null, OnAfterEvent);
                     }
+                }
+                catch { }
 
+                try {
                     EventInfo beginContextRenderingEvent = renderPipelineManagerType.GetEvent("beginContextRendering");
                     if (beginContextRenderingEvent != null) {
                         beginContextRenderingEvent.AddEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+
+                try {
                     EventInfo endContextRenderingEvent = renderPipelineManagerType.GetEvent("endContextRendering");
                     if (endContextRenderingEvent != null) {
                         endContextRenderingEvent.AddEventHandler(null, OnAfterEvent);
                     }
                 }
+                catch { }
+            }
 
+            try {
                 EventInfo onBeforeRenderEvent = typeof(Application).GetEvent("onBeforeRender");
                 if (onBeforeRenderEvent != null) {
                     onBeforeRenderEvent.AddEventHandler(null, onBeforeRenderAction);
                 }
             }
-            catch (Exception exception)
-            {
-                ExplorerCore.LogWarning($"Failed to add event handler to rendering pipeline: {exception}");
-            }
+            catch { }
         }
 
         protected virtual void OnDisable()
@@ -1283,47 +1387,61 @@ namespace UnityExplorer.UI.Panels
             }
 #endif
 
-            try
-            {
-                // These doesn't exist for Unity <2017 nor when using HDRP
-                Type renderPipelineManagerType = ReflectionUtility.GetTypeByName("RenderPipelineManager");
-                if (renderPipelineManagerType != null){
+            // These doesn't exist for Unity <2017 nor when using HDRP
+            Type renderPipelineManagerType = ReflectionUtility.GetTypeByName("RenderPipelineManager");
+            if (renderPipelineManagerType != null){
+                try {
                     EventInfo beginFrameRenderingEvent = renderPipelineManagerType.GetEvent("beginFrameRendering");
                     if (beginFrameRenderingEvent != null) {
                         beginFrameRenderingEvent.RemoveEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+                
+                try {
                     EventInfo endFrameRenderingEvent = renderPipelineManagerType.GetEvent("endFrameRendering");
                     if (endFrameRenderingEvent != null) {
                         endFrameRenderingEvent.RemoveEventHandler(null, OnAfterEvent);
                     }
-
+                }
+                catch { }
+                
+                try {
                     EventInfo beginCameraRenderingEvent = renderPipelineManagerType.GetEvent("beginCameraRendering");
                     if (beginCameraRenderingEvent != null) {
                         beginCameraRenderingEvent.RemoveEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+                
+                try {
                     EventInfo endCameraRenderingEvent = renderPipelineManagerType.GetEvent("endCameraRendering");
                     if (endCameraRenderingEvent != null) {
                         endCameraRenderingEvent.RemoveEventHandler(null, OnAfterEvent);
                     }
-
+                }
+                catch { }
+                
+                try {
                     EventInfo beginContextRenderingEvent = renderPipelineManagerType.GetEvent("beginContextRendering");
                     if (beginContextRenderingEvent != null) {
                         beginContextRenderingEvent.RemoveEventHandler(null, OnBeforeEvent);
                     }
+                }
+                catch { }
+                
+                try {
                     EventInfo endContextRenderingEvent = renderPipelineManagerType.GetEvent("endContextRendering");
                     if (endContextRenderingEvent != null) {
                         endContextRenderingEvent.RemoveEventHandler(null, OnAfterEvent);
                     }
                 }
-
-                EventInfo onBeforeRenderEvent = typeof(Application).GetEvent("onBeforeRender");
-                if (onBeforeRenderEvent != null) {
-                    onBeforeRenderEvent.RemoveEventHandler(null, onBeforeRenderAction);
-                }
+                catch { }
             }
-            catch (Exception exception)
-            {
-                ExplorerCore.LogWarning($"Failed to remove event handler from rendering pipeline: {exception}");
+
+            EventInfo onBeforeRenderEvent = typeof(Application).GetEvent("onBeforeRender");
+            if (onBeforeRenderEvent != null) {
+                onBeforeRenderEvent.RemoveEventHandler(null, onBeforeRenderAction);
             }
         }
 
