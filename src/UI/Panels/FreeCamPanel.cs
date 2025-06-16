@@ -139,10 +139,16 @@ namespace UnityExplorer.UI.Panels
         private static Camera GetTargetCamera()
         {
             Camera currentMain = Camera.main;
-            Camera[] cameras = GetAvailableCameras();
+            if (!ConfigManager.Advanced_Freecam_Selection.Value && !targetCameraDropdown)
+            {
+                return currentMain;
+            }
+
+            Camera[] cameras = GetAvailableCameras().Where(c => c.name != "CUE Camera").ToArray();
+
+            int selectedCameraTargetIndex = -1;
 
             // If the list of camera was updated since the last time we checked, update the dropdown and select the current main camera if available
-            // Could filter out CUE camera here, but we shouldnt reach a point where the CUE camera is alive at this point
             if (!cameras.Select(c => c.name).SequenceEqual(targetCameraDropdown.options.ToArray().Select(c => c.text))) 
             {
                 targetCameraDropdown.options.Clear();
@@ -151,12 +157,29 @@ namespace UnityExplorer.UI.Panels
                     Camera cam = cameras[i];
                     targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
 
-                    if (currentMain && cam == currentMain)
-                    {
-                        targetCameraDropdown.value = i;
-                        targetCameraDropdown.captionText.text = cam.name;
+                    // The user selected a target camera at some point, default to that
+                    if (i == ConfigManager.Preferred_Target_Camera.Value) {
+                        selectedCameraTargetIndex = i;
                     }
                 }
+
+                // If couldn't find the user selected camera default to the main camera
+                if (selectedCameraTargetIndex == -1)
+                {
+                    selectedCameraTargetIndex = Array.IndexOf(cameras, Camera.main);
+                }
+
+#if STANDALONE
+                // Standalone doesn't have a reference to Dropdown.SetValueWithoutNotify
+                // Should still check this implementation
+                targetCameraDropdown.onValueChanged.RemoveListener(UpdateTargetCameraAction);
+                targetCameraDropdown.value = selectedCameraTargetIndex;
+                targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
+#else
+                targetCameraDropdown.SetValueWithoutNotify(selectedCameraTargetIndex);
+#endif
+                
+                targetCameraDropdown.captionText.text = cameras[selectedCameraTargetIndex].name;
             }
 
             // Fallback to the first camera
@@ -226,7 +249,7 @@ namespace UnityExplorer.UI.Panels
                         lastMainCamera.enabled = false;
                     }
 
-                    ourCamera = new GameObject("UE_Freecam").AddComponent<Camera>();
+                    ourCamera = new GameObject("CUE Camera").AddComponent<Camera>();
                     ourCamera.gameObject.tag = "MainCamera";
                     GameObject.DontDestroyOnLoad(ourCamera.gameObject);
                     ourCamera.gameObject.hideFlags = HideFlags.HideAndDontSave;
@@ -270,7 +293,7 @@ namespace UnityExplorer.UI.Panels
                         MaybeToggleOrthographic(false);
                         ToggleCustomComponents(false);
 
-                        cameraMatrixOverrider = new GameObject("[CUE] Camera Matrix Overrider").AddComponent<Camera>();
+                        cameraMatrixOverrider = new GameObject("CUE Camera").AddComponent<Camera>();
                         cameraMatrixOverrider.enabled = false;
                         cameraMatrixOverrider.transform.position = lastMainCamera.transform.position;
                         cameraMatrixOverrider.transform.rotation = lastMainCamera.transform.rotation;
@@ -285,7 +308,7 @@ namespace UnityExplorer.UI.Panels
             // Fallback in case we couldn't find the main camera for some reason
             if (!ourCamera)
             {
-                ourCamera = new GameObject("UE_Freecam").AddComponent<Camera>();
+                ourCamera = new GameObject("CUE Camera").AddComponent<Camera>();
                 ourCamera.gameObject.tag = "MainCamera";
                 GameObject.DontDestroyOnLoad(ourCamera.gameObject);
                 ourCamera.gameObject.hideFlags = HideFlags.HideAndDontSave;
@@ -392,6 +415,12 @@ namespace UnityExplorer.UI.Panels
                 EndFreecam();
                 BeginFreecam();
             }
+        }
+
+        internal static void UpdateTargetCameraAction(int newCameraIndex)
+        {
+            ConfigManager.Preferred_Target_Camera.Value = newCameraIndex;
+            MaybeResetFreecam();
         }
 
         // Experimental feature to automatically disable cinemachine when turning on the gameplay freecam.
@@ -510,30 +539,41 @@ namespace UnityExplorer.UI.Panels
             UIFactory.SetLayoutElement(cameraTypeDropdownObj, minHeight: 25, minWidth: 150);
             cameraTypeDropdown.value = (int)ConfigManager.Default_Freecam.Value;
 
-            Text TargetCamLabel = UIFactory.CreateLabel(CameraModeRow, "Target_cam_label", " Target cam:");
-            UIFactory.SetLayoutElement(TargetCamLabel.gameObject, minWidth: 75, minHeight: 25);
+            if (ConfigManager.Advanced_Freecam_Selection.Value)
+            {
+                Text TargetCamLabel = UIFactory.CreateLabel(CameraModeRow, "Target_cam_label", " Target cam:");
+                UIFactory.SetLayoutElement(TargetCamLabel.gameObject, minWidth: 75, minHeight: 25);
 
-            GameObject targetCameraDropdownObj = UIFactory.CreateDropdown(CameraModeRow, "TargetCamera_Dropdown", out targetCameraDropdown, null, 14, null);
+                GameObject targetCameraDropdownObj = UIFactory.CreateDropdown(CameraModeRow, "TargetCamera_Dropdown", out targetCameraDropdown, null, 14, null);
 
-            targetCameraDropdown.onValueChanged.AddListener(delegate {
-                MaybeResetFreecam();
-            });
+                targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
 
-            try {
-                Camera[] cameras = GetAvailableCameras();
-                foreach (Camera cam in cameras) {
-                    targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
+                try {
+                    Camera[] cameras = GetAvailableCameras();
+                    foreach (Camera cam in cameras) {
+                        targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
+                    }
+                    if (Camera.main) {
+#if STANDALONE
+                        // Standalone doesn't have a reference to Dropdown.SetValueWithoutNotify
+                        // Should still check this implementation
+                        targetCameraDropdown.onValueChanged.RemoveListener(UpdateTargetCameraAction);
+                        targetCameraDropdown.value = Array.IndexOf(cameras, Camera.main);
+                        targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
+#else
+                        targetCameraDropdown.SetValueWithoutNotify(Array.IndexOf(cameras, Camera.main));
+#endif
+
+                        targetCameraDropdown.captionText.text = Camera.main.name;
+                    }
                 }
-                if (Camera.main) {
-                    targetCameraDropdown.value = Array.IndexOf(cameras, Camera.main);
-                    targetCameraDropdown.captionText.text = Camera.main.name;
+                catch (Exception ex) {
+                    ExplorerCore.LogWarning(ex);
                 }
-            }
-            catch (Exception ex) {
-                ExplorerCore.LogWarning(ex);
-            }
 
-            UIFactory.SetLayoutElement(targetCameraDropdownObj, minHeight: 25, minWidth: 150);
+                UIFactory.SetLayoutElement(targetCameraDropdownObj, minHeight: 25, minWidth: 150);
+            }
+            
 
             AddSpacer(5);
 

@@ -31,7 +31,9 @@ namespace UnityExplorer.Loader.Standalone
         public bool Reset_Camera_Transform;
         public FreeCamPanel.FreeCameraType Default_Freecam;
         public string Custom_Components_To_Disable;
+        public int Preferred_Target_Camera;
         public float Arrow_Size = 1f;
+        public bool Advanced_Freecam_Selection;
 
         public KeyCode Pause;
         public KeyCode Frameskip;
@@ -90,7 +92,10 @@ namespace UnityExplorer.Loader.Standalone
             ConfigManager.Reset_Camera_Transform.Value = this.Reset_Camera_Transform;
             ConfigManager.Default_Freecam.Value = this.Default_Freecam;
             ConfigManager.Custom_Components_To_Disable.Value = this.Custom_Components_To_Disable;
+            ConfigManager.Preferred_Target_Camera.Value = this.Preferred_Target_Camera;
+
             ConfigManager.Arrow_Size.Value = this.Arrow_Size;
+            ConfigManager.Advanced_Freecam_Selection.Value = this.Advanced_Freecam_Selection;
 
             ConfigManager.Pause.Value = this.Pause;
             ConfigManager.Frameskip.Value = this.Frameskip;
