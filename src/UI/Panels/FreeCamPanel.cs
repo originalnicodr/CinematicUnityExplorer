@@ -133,7 +133,7 @@ namespace UnityExplorer.UI.Panels
                 cameras = RuntimeHelper.FindObjectsOfTypeAll<Camera>();
             }
 
-            return cameras;
+            return cameras.Where(c => c.name != "CUE Camera").ToArray();
         }
 
         private static Camera GetTargetCamera()
@@ -144,7 +144,7 @@ namespace UnityExplorer.UI.Panels
                 return currentMain;
             }
 
-            Camera[] cameras = GetAvailableCameras().Where(c => c.name != "CUE Camera").ToArray();
+            Camera[] cameras = GetAvailableCameras();
 
             int selectedCameraTargetIndex = -1;
 
@@ -158,7 +158,7 @@ namespace UnityExplorer.UI.Panels
                     targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
 
                     // The user selected a target camera at some point, default to that
-                    if (i == ConfigManager.Preferred_Target_Camera.Value) {
+                    if (ConfigManager.Preferred_Target_Camera.Value == GetGameObjectPath(cam.gameObject)) {
                         selectedCameraTargetIndex = i;
                     }
                 }
@@ -419,8 +419,21 @@ namespace UnityExplorer.UI.Panels
 
         internal static void UpdateTargetCameraAction(int newCameraIndex)
         {
-            ConfigManager.Preferred_Target_Camera.Value = newCameraIndex;
+            Camera[] cameras = GetAvailableCameras();
+            Camera cam = cameras[newCameraIndex];
+            ConfigManager.Preferred_Target_Camera.Value = GetGameObjectPath(cam.gameObject);
             MaybeResetFreecam();
+        }
+
+        public static string GetGameObjectPath(GameObject obj)
+        {
+            string path = "/" + obj.name;
+            while (obj.transform.parent != null)
+            {
+                obj = obj.transform.parent.gameObject;
+                path = "/" + obj.name + path;
+            }
+            return path;
         }
 
         // Experimental feature to automatically disable cinemachine when turning on the gameplay freecam.
