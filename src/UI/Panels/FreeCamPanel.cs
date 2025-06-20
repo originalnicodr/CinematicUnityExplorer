@@ -169,16 +169,7 @@ namespace UnityExplorer.UI.Panels
                     selectedCameraTargetIndex = Array.IndexOf(cameras, Camera.main);
                 }
 
-#if STANDALONE
-                // Standalone doesn't have a reference to Dropdown.SetValueWithoutNotify
-                // Should still check this implementation
-                targetCameraDropdown.onValueChanged.RemoveListener(UpdateTargetCameraAction);
-                targetCameraDropdown.value = selectedCameraTargetIndex;
-                targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
-#else
-                targetCameraDropdown.SetValueWithoutNotify(selectedCameraTargetIndex);
-#endif
-                
+                SetTargetDropdownValueWithoutNotify(selectedCameraTargetIndex);
                 targetCameraDropdown.captionText.text = cameras[selectedCameraTargetIndex].name;
             }
 
@@ -425,6 +416,22 @@ namespace UnityExplorer.UI.Panels
             MaybeResetFreecam();
         }
 
+        internal static void SetTargetDropdownValueWithoutNotify(int selectedCameraTargetIndex)
+        {
+            // Some build types don't have a reference to Dropdown.SetValueWithoutNotify
+            MethodInfo SetValueWithoutNotifyMethod = targetCameraDropdown.GetType().GetMethod("SetValueWithoutNotify", new[] { typeof(int) });
+            if (SetValueWithoutNotifyMethod != null)
+            {
+                SetValueWithoutNotifyMethod.Invoke(targetCameraDropdown, new object[] { selectedCameraTargetIndex });
+            }
+            else
+            {
+                targetCameraDropdown.onValueChanged.RemoveListener(UpdateTargetCameraAction);
+                targetCameraDropdown.value = selectedCameraTargetIndex;
+                targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
+            }
+        }
+
         public static string GetGameObjectPath(GameObject obj)
         {
             string path = "/" + obj.name;
@@ -567,16 +574,7 @@ namespace UnityExplorer.UI.Panels
                         targetCameraDropdown.options.Add(new Dropdown.OptionData(cam.name));
                     }
                     if (Camera.main) {
-#if STANDALONE
-                        // Standalone doesn't have a reference to Dropdown.SetValueWithoutNotify
-                        // Should still check this implementation
-                        targetCameraDropdown.onValueChanged.RemoveListener(UpdateTargetCameraAction);
-                        targetCameraDropdown.value = Array.IndexOf(cameras, Camera.main);
-                        targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
-#else
-                        targetCameraDropdown.SetValueWithoutNotify(Array.IndexOf(cameras, Camera.main));
-#endif
-
+                        SetTargetDropdownValueWithoutNotify(Array.IndexOf(cameras, Camera.main));
                         targetCameraDropdown.captionText.text = Camera.main.name;
                     }
                 }
