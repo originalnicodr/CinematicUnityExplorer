@@ -138,10 +138,9 @@ namespace UnityExplorer.UI.Panels
 
         private static Camera GetTargetCamera()
         {
-            Camera currentMain = Camera.main;
             if (!ConfigManager.Advanced_Freecam_Selection.Value && !targetCameraDropdown)
             {
-                return currentMain;
+                return Camera.main;
             }
 
             Camera[] cameras = GetAvailableCameras();
@@ -166,7 +165,14 @@ namespace UnityExplorer.UI.Panels
                 // If couldn't find the user selected camera default to the main camera
                 if (selectedCameraTargetIndex == -1)
                 {
-                    selectedCameraTargetIndex = Array.IndexOf(cameras, Camera.main);
+                    for (int i = 0; i < cameras.Length; i++)
+                    {
+                        if (cameras[i] == Camera.main)
+                        {
+                            selectedCameraTargetIndex = i;
+                            break;
+                        }
+                    }
                 }
 
                 SetTargetDropdownValueWithoutNotify(selectedCameraTargetIndex);
@@ -327,12 +333,6 @@ namespace UnityExplorer.UI.Panels
 
         internal static void EndFreecam()
         {
-            if (ourCamera == null)
-            {
-                ExplorerCore.LogWarning("EndFreecam called but ourCamera is null, returning.");
-                return;
-            }
-
             inFreeCamMode = false;
             connector?.UpdateFreecamStatus(false);
 
@@ -363,8 +363,8 @@ namespace UnityExplorer.UI.Panels
                     MaybeToggleOrthographic(true);
                     ToggleCustomComponents(true);
                     MethodInfo resetCullingMatrixMethod = typeof(Camera).GetMethod("ResetCullingMatrix", new Type[] {});
-
                     resetCullingMatrixMethod.Invoke(ourCamera, null);
+
                     ourCamera.ResetWorldToCameraMatrix();
                     ourCamera.ResetProjectionMatrix();
                     ourCamera = null;
@@ -565,7 +565,6 @@ namespace UnityExplorer.UI.Panels
                 UIFactory.SetLayoutElement(TargetCamLabel.gameObject, minWidth: 75, minHeight: 25);
 
                 GameObject targetCameraDropdownObj = UIFactory.CreateDropdown(CameraModeRow, "TargetCamera_Dropdown", out targetCameraDropdown, null, 14, null);
-
                 targetCameraDropdown.onValueChanged.AddListener(UpdateTargetCameraAction);
 
                 try {
