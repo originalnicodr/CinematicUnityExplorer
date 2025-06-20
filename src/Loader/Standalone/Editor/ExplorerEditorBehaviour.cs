@@ -31,7 +31,7 @@ namespace UnityExplorer.Loader.Standalone
         public bool Reset_Camera_Transform;
         public FreeCamPanel.FreeCameraType Default_Freecam;
         public string Custom_Components_To_Disable;
-        public int Preferred_Target_Camera;
+        public string Preferred_Target_Camera;
         public float Arrow_Size = 1f;
         public bool Advanced_Freecam_Selection;
 

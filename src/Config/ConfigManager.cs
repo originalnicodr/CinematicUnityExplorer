@@ -64,7 +64,7 @@ namespace UnityExplorer.Config
 
         public static ConfigElement<FreeCamPanel.FreeCameraType> Default_Freecam;
         public static ConfigElement<string> Custom_Components_To_Disable;
-        public static ConfigElement<int> Preferred_Target_Camera;
+        public static ConfigElement<string> Preferred_Target_Camera;
 
         // internal configs
         internal static InternalConfigHandler InternalHandler { get; private set; }
@@ -321,7 +321,7 @@ namespace UnityExplorer.Config
             Preferred_Target_Camera = new("Preferred Target Camera",
                 "The camera that will be targeted by the freecam methods.\n" +
                 "Only used when Advanced Freecam Selection is enabled.",
-                -1);
+                "\\");
         }
     }
 }
