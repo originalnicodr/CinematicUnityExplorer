@@ -81,7 +81,38 @@ namespace UnityExplorer.UI.Panels
         static bool disabledCinemachine;
         static bool disabledOrthographic;
         static List<string> stringComponentsToDisable = new();
-        static List<Behaviour> componentsToDisable = new();
+        
+        private class DisableTarget
+        {
+            public UnityEngine.Object Target { get; private set; }
+            public bool IsGameObject { get; private set; }
+
+            public DisableTarget(Behaviour component)
+            {
+                Target = component;
+                IsGameObject = false;
+            }
+
+            public DisableTarget(GameObject gameObject)
+            {
+                Target = gameObject;
+                IsGameObject = true;
+            }
+
+            public void SetEnabled(bool enable)
+            {
+                if (IsGameObject)
+                {
+                    ((GameObject)Target).SetActive(enable);
+                }
+                else
+                {
+                    ((Behaviour)Target).enabled = enable;
+                }
+            }
+        }
+
+        static List<DisableTarget> componentsToDisable = new();
 
         public static bool supportedInput => InputManager.CurrentType == InputType.Legacy;
 
@@ -600,7 +631,7 @@ namespace UnityExplorer.UI.Panels
 
             AddSpacer(5);
 
-            AddInputField("ComponentsToDisable", "Components To Disable:", "CinemachineBrain", out componentsToDisableInput, ComponentsToDisableInput_OnEndEdit, 175);
+            AddInputField("ComponentsToDisable", "Disable Components/GameObjects:", "CinemachineBrain", out componentsToDisableInput, ComponentsToDisableInput_OnEndEdit, 250);
             componentsToDisableInput.Text = ConfigManager.Custom_Components_To_Disable.Value;
             stringComponentsToDisable = ConfigManager.Custom_Components_To_Disable.Value.Split(',').Select(c => c.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
 
@@ -897,9 +928,9 @@ namespace UnityExplorer.UI.Panels
             stringComponentsToDisable = input.Split(',').Select(c => c.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
         }
 
-        static List<Behaviour> GetComponentsToDisable()
+        static List<DisableTarget> GetComponentsToDisable()
         {
-            List<Behaviour> components = new();
+            List<DisableTarget> components = new();
             if (stringComponentsToDisable == null || stringComponentsToDisable.Count == 0)
             {
                 return components;
@@ -928,7 +959,41 @@ namespace UnityExplorer.UI.Panels
 
                         if (!foundNextPathStep)
                         {
-                            ExplorerCore.LogWarning($"Couldn't find {stringComponent} component to disable it.");
+                            var test = new GameObject("Test CUE object to get DontDestroyOnLoad scene");
+                            UnityEngine.Object.DontDestroyOnLoad(test);
+                            Scene scene = test.scene;
+                            GameObject.Destroy(test);
+
+                            foreach (GameObject obj in scene.GetRootGameObjects()) {
+                                if (obj.name == pathStep)
+                                {
+                                    foundNextPathStep = obj;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!foundNextPathStep)
+                        {
+                            for (int j = 0; j < SceneManager.sceneCount; j++)
+                            {
+                                Scene scene = SceneManager.GetSceneAt(j);
+                                if (scene == SceneManager.GetActiveScene() || !scene.isLoaded) continue;
+
+                                foreach (GameObject obj in scene.GetRootGameObjects()) {
+                                    if (obj.name == pathStep)
+                                    {
+                                        foundNextPathStep = obj;
+                                        break;
+                                    }
+                                }
+                                if (foundNextPathStep) break;
+                            }
+                        }
+
+                        if (!foundNextPathStep)
+                        {
+                            ExplorerCore.LogWarning($"Couldn't find root {foundNextPathStep} gameobject on {stringComponent} path to disable it.");
                             break;
                         }
                         currentGameObject = foundNextPathStep;
@@ -938,7 +1003,7 @@ namespace UnityExplorer.UI.Panels
                     if (pathStep == "..") {
                         if (!currentGameObject.transform.parent)
                         {
-                            ExplorerCore.LogWarning($"Couldn't find {stringComponent} component to disable it.");
+                            ExplorerCore.LogWarning($"{currentGameObject.name} doesn't have a parent, so can't go up the parent hierarchy on {stringComponent}.");
                             break;
                         }
 
@@ -946,23 +1011,27 @@ namespace UnityExplorer.UI.Panels
                         continue;
                     }
 
-                    // Last member of the path, should be a component
+                    // Last member of the path, could be either a component or a GameObject
                     if (i == pathToComponent.Count - 1) {
                         Behaviour comp = GetComponentByName(currentGameObject, pathStep);
-                        if (!comp)
-                        {
-                            // Should we allow to disable entire GameObjects here if it can't find the right component?
-                            ExplorerCore.LogWarning($"Couldn't find {stringComponent} component to disable it.");
-                            break;
+                        if (comp) {
+                            components.Add(new DisableTarget(comp));
                         }
+                        else {
+                            Transform nextGameObjectTransform = currentGameObject.transform.Find(pathStep);
+                            if (!nextGameObjectTransform) {
+                                ExplorerCore.LogWarning($"Couldn't find {pathStep} component or gameobject on {stringComponent} path to disable it.");
+                                break;
+                            }
 
-                        components.Add(comp);
+                            components.Add(new DisableTarget(nextGameObjectTransform.gameObject));
+                        }
                     }
                     else {
                         Transform nextGameObjectTransform = currentGameObject.transform.Find(pathStep);
                         if (!nextGameObjectTransform)
                         {
-                            ExplorerCore.LogWarning($"Couldn't find {stringComponent} component to disable it.");
+                            ExplorerCore.LogWarning($"Couldn't find {pathStep} gameobject on {stringComponent} path to disable it.");
                             break;
                         }
 
@@ -981,10 +1050,10 @@ namespace UnityExplorer.UI.Panels
                 componentsToDisable = GetComponentsToDisable();
             }
 
-            foreach(Behaviour comp in componentsToDisable)
+            foreach(DisableTarget target in componentsToDisable)
             {
-                // We could outright delete the components if on Cloned freecam mode
-                comp.enabled = enable;
+                // We could outright delete the components/gameobjects if on Cloned freecam mode
+                target.SetEnabled(enable);
             }
         }
 
