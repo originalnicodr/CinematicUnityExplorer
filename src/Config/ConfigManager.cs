@@ -33,7 +33,7 @@ namespace UnityExplorer.Config
         public static ConfigElement<bool> Auto_Scale_UI;
         public static ConfigElement<bool> Reset_Camera_Transform;
         public static ConfigElement<float> Arrow_Size;
-        public static ConfigElement<bool> Advanced_Freecam_Selection;
+        public static ConfigElement<bool> Freecam_Camera_Target_Selection;
 
         public static ConfigElement<KeyCode> Pause;
         public static ConfigElement<KeyCode> Frameskip;
@@ -200,7 +200,7 @@ namespace UnityExplorer.Config
                 "Cam Paths nodes and Lights Manager lights visualizers' arrow size (must be positive) (needs visualizer toggled to reflect changes).",
                 1f);
 
-            Advanced_Freecam_Selection = new("Advanced Freecam Selection",
+            Freecam_Camera_Target_Selection = new("Freecam Camera Target Selection",
                 "Enables certain advanced settings on the Freecam panel, in case the user can't get the freecam to work properly (requires game reset).",
                 false);
 
@@ -320,7 +320,7 @@ namespace UnityExplorer.Config
 
             Preferred_Target_Camera = new("Preferred Target Camera",
                 "The camera that will be targeted by the freecam methods.\n" +
-                "Only used when Advanced Freecam Selection is enabled.",
+                "Only used when Freecam Camera Target Selection is enabled.",
                 "\\");
         }
     }

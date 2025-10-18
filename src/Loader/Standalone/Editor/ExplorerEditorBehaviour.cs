@@ -33,7 +33,7 @@ namespace UnityExplorer.Loader.Standalone
         public string Custom_Components_To_Disable;
         public string Preferred_Target_Camera;
         public float Arrow_Size = 1f;
-        public bool Advanced_Freecam_Selection;
+        public bool Freecam_Camera_Target_Selection;
 
         public KeyCode Pause;
         public KeyCode Frameskip;
@@ -95,7 +95,7 @@ namespace UnityExplorer.Loader.Standalone
             ConfigManager.Preferred_Target_Camera.Value = this.Preferred_Target_Camera;
 
             ConfigManager.Arrow_Size.Value = this.Arrow_Size;
-            ConfigManager.Advanced_Freecam_Selection.Value = this.Advanced_Freecam_Selection;
+            ConfigManager.Freecam_Camera_Target_Selection.Value = this.Freecam_Camera_Target_Selection;
 
             ConfigManager.Pause.Value = this.Pause;
             ConfigManager.Frameskip.Value = this.Frameskip;

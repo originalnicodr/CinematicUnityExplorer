@@ -19,10 +19,10 @@ namespace UnityExplorer.UI.Panels
     public class FreeCamPanel : UEPanel
     {
         public enum FreeCameraType {
-            New,
-            Gameplay,
-            Cloned,
             ForcedMatrix,
+            Cloned,
+            Gameplay,
+            New,
         }
 
         public FreeCamPanel(UIBase owner) : base(owner)
@@ -138,7 +138,7 @@ namespace UnityExplorer.UI.Panels
 
         private static Camera GetTargetCamera()
         {
-            if (!ConfigManager.Advanced_Freecam_Selection.Value && !targetCameraDropdown)
+            if (!ConfigManager.Freecam_Camera_Target_Selection.Value && !targetCameraDropdown)
             {
                 return Camera.main;
             }
@@ -559,7 +559,7 @@ namespace UnityExplorer.UI.Panels
             UIFactory.SetLayoutElement(cameraTypeDropdownObj, minHeight: 25, minWidth: 150);
             cameraTypeDropdown.value = (int)ConfigManager.Default_Freecam.Value;
 
-            if (ConfigManager.Advanced_Freecam_Selection.Value)
+            if (ConfigManager.Freecam_Camera_Target_Selection.Value)
             {
                 Text TargetCamLabel = UIFactory.CreateLabel(CameraModeRow, "Target_cam_label", " Target cam:");
                 UIFactory.SetLayoutElement(TargetCamLabel.gameObject, minWidth: 75, minHeight: 25);
