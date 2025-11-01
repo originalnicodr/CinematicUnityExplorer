@@ -114,7 +114,7 @@ namespace UnityExplorer.UI.Panels
 
         static List<DisableTarget> componentsToDisable = new();
 
-        public static bool supportedInput => InputManager.CurrentType == InputType.Legacy;
+        public static bool supportedInput => InputManager.CurrentType == InputType.Legacy || InputManager.CurrentType == InputType.InputSystem;
 
         static InputFieldRef nearClipPlaneInput;
         static Slider nearClipPlaneSlider;
