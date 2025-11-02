@@ -52,8 +52,8 @@ namespace UniverseLib.Input
                 case InputType.Legacy:
                     return ILegacyInput.GetKeyDown(key);
                 case InputType.InputSystem:
-                    string buttonName = key.ToString();
-                    return INewInputSystem.GetButtonWasPressed($"/Keyboard/{buttonName}");
+                    string buttonName = $"/Keyboard/{key.ToString()}";
+                    return INewInputSystem.GetButtonWasPressed(buttonName);
                 case InputType.None:
                 default:
                     return InputManager.GetKeyDown(key);
@@ -67,7 +67,7 @@ namespace UniverseLib.Input
                 case InputType.InputSystem:
                     // Closest equivalent in the new input system is "wasPressedThisFrame"?
                     string buttonName = $"/Keyboard/{key.ToString()}";
-                    return INewInputSystem.GetButtonWasPressed(buttonName);
+                    return INewInputSystem.GetButtonWasReleased(buttonName);
                 case InputType.None:
                 default:
                     return InputManager.GetKeyUp(key);
@@ -91,14 +91,7 @@ namespace UniverseLib.Input
                 case InputType.Legacy:
                     return ILegacyInput.GetMouseButtonDown(button);
                 case InputType.InputSystem:
-                    string buttonName = button switch
-                    {
-                        0 => "/Mouse/leftButton",
-                        1 => "/Mouse/rightButton",
-                        2 => "/Mouse/middleButton",
-                        _ => $"/Mouse/button{button}"
-                    };
-                    return INewInputSystem.GetButtonWasPressed(buttonName);
+                    return INewInputSystem.GetMouseButtonDown(button);
                 case InputType.None:
                 default:
                     return InputManager.GetMouseButtonDown(button);
@@ -345,234 +338,145 @@ namespace UniverseLib.Input
 
     public static class INewInputSystem
     {
-        private static MethodInfo isValueConsideredPressed;
+        // --- Reflected members ---
         private static PropertyInfo isPressedProp;
         private static PropertyInfo wasPressedProp;
+        private static PropertyInfo wasReleasedProp;
+        private static MethodInfo isValueConsideredPressed;
         private static MethodInfo isPressedMethod;
         private static MethodInfo isInProgressMethod;
         private static MethodInfo wasPressedMethod;
         private static MethodInfo wasPerformedMethod;
 
-        private static Dictionary<string, object> buttonControls = new();
+        // --- State dictionaries ---
+        private static readonly Dictionary<string, object> buttonControls = new();
+        private static readonly Dictionary<string, bool> buttonPressedStates = new();
+        private static readonly Dictionary<string, bool> buttonWasPressedStates = new();
+        private static readonly Dictionary<string, bool> buttonWasReleasedStates = new();
+        private static readonly Dictionary<string, bool> buttonIsValueConsideredPressedStates = new();
+        private static readonly Dictionary<string, bool> actionInProgressStates = new();
+        private static readonly Dictionary<string, bool> actionWasPerformedStates = new();
 
+        // --- Initialization ---
         public static void Init()
         {
             Type buttonControlType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Controls.ButtonControl, Unity.InputSystem");
-            if (buttonControlType != null)
-            {
-                try
-                {
-                    isValueConsideredPressed = buttonControlType.GetMethod("IsValueConsideredPressed");
-                    if (isValueConsideredPressed != null)
-                    {
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(isValueConsideredPressed) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(isValueConsideredPressed,
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch IsValueConsideredPressed: {ex.Message}");
-                }
-
-                try
-                {
-                    isPressedProp = buttonControlType.GetProperty("isPressed");
-                    if (isPressedProp?.GetGetMethod() != null)
-                    {
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(isPressedProp.GetGetMethod()) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(isPressedProp.GetGetMethod(),
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch isPressed: {ex.Message}");
-                }
-
-                try
-                {
-                    wasPressedProp = buttonControlType.GetProperty("wasPressedThisFrame");
-                    if (wasPressedProp?.GetGetMethod() != null)
-                    {
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(wasPressedProp.GetGetMethod()) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(wasPressedProp.GetGetMethod(),
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch wasPressedThisFrame: {ex.Message}");
-                }
-            }
-
-            // Patch InputAction methods
             Type inputActionType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.InputAction, Unity.InputSystem");
-            if (inputActionType != null)
+
+            if (buttonControlType == null || inputActionType == null)
             {
-                try
-                {
-                    isPressedMethod = inputActionType.GetMethod("IsPressed");
-                    if (isPressedMethod != null)
-                    {
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(isPressedMethod) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(isPressedMethod,
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch IsPressed: {ex.Message}");
-                }
-
-                try
-                {
-                    ExplorerCore.LogWarning("Attempting to patch InputAction.IsInProgress...");
-                    isInProgressMethod = inputActionType.GetMethod("IsInProgress");
-                    if (isInProgressMethod != null)
-                    {
-                        ExplorerCore.LogWarning("Found InputAction.IsInProgress method.");
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(isInProgressMethod) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(isInProgressMethod,
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch IsInProgress: {ex.Message}");
-                }
-
-                try
-                {
-                    ExplorerCore.LogWarning("Attempting to patch InputAction.WasPressedThisFrame...");
-                    wasPressedMethod = inputActionType.GetMethod("WasPressedThisFrame");
-                    if (wasPressedMethod != null)
-                    {
-                        ExplorerCore.LogWarning("Found InputAction.WasPressedThisFrame method.");
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(wasPressedMethod) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(wasPressedMethod,
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch WasPressedThisFrame: {ex.Message}");
-                }
-
-                try
-                {
-                    ExplorerCore.LogWarning("Attempting to patch InputAction.WasPerformedThisFrame...");
-                    wasPerformedMethod = inputActionType.GetMethod("WasPerformedThisFrame");
-                    if (wasPerformedMethod != null)
-                    {
-                        ExplorerCore.LogWarning("Found InputAction.WasPerformedThisFrame method.");
-#if CPP
-                        if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(wasPerformedMethod) == null)
-                            throw new Exception();
-#endif
-                        ExplorerCore.Harmony.Patch(wasPerformedMethod,
-                            prefix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Prefix))),
-                            postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), nameof(Postfix))));
-                    }
-                }
-                catch (Exception ex) 
-                { 
-                    ExplorerCore.LogWarning($"Failed to patch WasPerformedThisFrame: {ex.Message}");
-                }
+                ExplorerCore.LogWarning("Unity.InputSystem types not found; InputSystem integration disabled.");
+                return;
             }
 
-            getButtonControls();
+            // === Patch all relevant ButtonControl properties ===
+            PatchButtonControl(buttonControlType);
+
+            // === Patch InputAction methods ===
+            PatchInputAction(inputActionType);
+
+            // === Cache controls ===
+            GetButtonControls();
         }
 
-        public static void getButtonControls()
+        private static void PatchButtonControl(Type buttonControlType)
         {
-            var buttonControlType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Controls.ButtonControl, Unity.InputSystem");
-            var keyControlType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Controls.KeyControl, Unity.InputSystem");
-            var pathProp = buttonControlType?.GetProperty("path", BindingFlags.Public | BindingFlags.Instance);
+            isPressedProp = buttonControlType.GetProperty("isPressed");
+            wasPressedProp = buttonControlType.GetProperty("wasPressedThisFrame");
+            wasReleasedProp = buttonControlType.GetProperty("wasReleasedThisFrame");
+            isValueConsideredPressed = buttonControlType.GetMethod("IsValueConsideredPressed");
 
-            // Helper local function to register all controls from any device
-            void RegisterDeviceControls(string deviceTypeName, string controlTypeName)
+            PatchPropertyGetter(isPressedProp, nameof(Postfix_IsPressed));
+            PatchPropertyGetter(wasPressedProp, nameof(Postfix_WasPressedThisFrame));
+            PatchPropertyGetter(wasReleasedProp, nameof(Postfix_WasReleasedThisFrame));
+            PatchPropertyGetter(wasReleasedProp, nameof(Postfix_IsValueConsideredPressed));
+        }
+
+        private static void PatchInputAction(Type inputActionType)
+        {
+            isPressedMethod = inputActionType.GetMethod("IsPressed");
+            isInProgressMethod = inputActionType.GetMethod("IsInProgress");
+            wasPressedMethod = inputActionType.GetMethod("WasPressedThisFrame");
+            wasPerformedMethod = inputActionType.GetMethod("WasPerformedThisFrame");
+
+            PatchMethod(isPressedMethod, nameof(Postfix_IsPressed));
+            PatchMethod(isInProgressMethod, nameof(Postfix_IsInProgress));
+            PatchMethod(wasPressedMethod, nameof(Postfix_WasPressedThisFrame));
+            PatchMethod(wasPerformedMethod, nameof(Postfix_WasPerformedThisFrame));
+        }
+
+        private static void PatchPropertyGetter(PropertyInfo prop, string postfixName)
+        {
+            if (prop?.GetGetMethod() == null) return;
+#if CPP
+            if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(prop.GetGetMethod()) == null)
+                throw new Exception();
+#endif
+            ExplorerCore.Harmony.Patch(prop.GetGetMethod(),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), postfixName)));
+        }
+
+        private static void PatchMethod(MethodInfo method, string postfixName)
+        {
+            if (method == null) return;
+#if CPP
+            if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(method) == null)
+                throw new Exception();
+#endif
+            ExplorerCore.Harmony.Patch(method,
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(INewInputSystem), postfixName)));
+        }
+
+        // --- Cache button controls ---
+        public static void GetButtonControls()
+        {
+            Type buttonControlType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Controls.ButtonControl, Unity.InputSystem");
+            PropertyInfo pathProp = buttonControlType?.GetProperty("path", BindingFlags.Public | BindingFlags.Instance);
+
+            RegisterDeviceControls("UnityEngine.InputSystem.Keyboard", "UnityEngine.InputSystem.Controls.KeyControl", pathProp);
+            RegisterDeviceControls("UnityEngine.InputSystem.Mouse", "UnityEngine.InputSystem.Controls.ButtonControl", pathProp);
+            //RegisterDeviceControls("UnityEngine.InputSystem.Gamepad", "UnityEngine.InputSystem.Controls.ButtonControl", pathProp);
+        }
+
+        private static void RegisterDeviceControls(string deviceTypeName, string controlTypeName, PropertyInfo pathProp)
+        {
+            Type deviceType = ReflectionUtility.GetTypeByName($"{deviceTypeName}, Unity.InputSystem");
+            if (deviceType == null) return;
+
+            PropertyInfo currentProp = deviceType.GetProperty("current", BindingFlags.Public | BindingFlags.Static);
+            object deviceInstance = currentProp?.GetValue(null);
+            if (deviceInstance == null) return;
+
+            foreach (PropertyInfo prop in deviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var deviceType = ReflectionUtility.GetTypeByName($"{deviceTypeName}, Unity.InputSystem");
-                if (deviceType == null)
-                {
-                    ExplorerCore.LogWarning($"Device type not found: {deviceTypeName}");
-                    return;
-                }
+                if (prop.GetIndexParameters().Length > 0)
+                    continue;
 
-                var currentProp = deviceType.GetProperty("current", BindingFlags.Public | BindingFlags.Static);
-                var deviceInstance = currentProp?.GetValue(null);
-                if (deviceInstance == null)
+                if (prop.PropertyType.FullName == controlTypeName)
                 {
-                    ExplorerCore.LogWarning($"{deviceTypeName}.current is null!");
-                    return;
-                }
-
-                foreach (var prop in deviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-                {
-                    if (prop.GetIndexParameters().Length > 0)
+                    object control = prop.GetValue(deviceInstance);
+                    if (control == null)
                         continue;
 
-                    if (prop.PropertyType.FullName == controlTypeName)
-                    {
-                        var control = prop.GetValue(deviceInstance);
-                        if (control == null)
-                            continue;
-
-                        string path = pathProp?.GetValue(control) as string;
-                        if (!string.IsNullOrEmpty(path))
-                        {
-                            buttonControls[path.ToLower()] = control;
-                            //ExplorerCore.LogWarning($"Registered control: {path}");
-                        }
-                    }
+                    string path = pathProp?.GetValue(control) as string;
+                    if (!string.IsNullOrEmpty(path))
+                        buttonControls[path.ToLower()] = control;
                 }
             }
-
-            // Register keyboard keys
-            RegisterDeviceControls("UnityEngine.InputSystem.Keyboard", "UnityEngine.InputSystem.Controls.KeyControl");
-            // Register mouse buttons
-            RegisterDeviceControls("UnityEngine.InputSystem.Mouse", "UnityEngine.InputSystem.Controls.ButtonControl");
-            // Register gamepad buttons (buttonSouth, buttonNorth, etc.)
-            RegisterDeviceControls("UnityEngine.InputSystem.Gamepad", "UnityEngine.InputSystem.Controls.ButtonControl");
         }
 
-        // Dictionaries to store input states
-        private static Dictionary<string, bool> buttonPressedStates = new Dictionary<string, bool>();
-        private static Dictionary<string, bool> buttonWasPressedStates = new Dictionary<string, bool>();
-        private static Dictionary<string, bool> actionInProgressStates = new Dictionary<string, bool>();
-        private static Dictionary<string, bool> actionWasPerformedStates = new Dictionary<string, bool>();
+        // --- Access methods ---
+
+        public static bool GetKey(KeyCode key)
+        {
+            string buttonName = key.ToString();
+            return GetButtonPressed($"/keyboard/{buttonName}");
+        }
 
         public static bool GetButtonPressed(string buttonName)
         {
-            string normalizedName = buttonName.ToLower();
-            normalizedName = PropToKeycode(normalizedName);
-            //ExplorerCore.LogWarning($"Getting button pressed state for: {normalizedName}");
-            if (buttonControls.TryGetValue(normalizedName, out var button))
+            string normalizedName = PropToKeycode(buttonName.ToLower());
+            if (buttonControls.TryGetValue(normalizedName, out object button))
             {
                 isPressedProp.GetValue(button);
                 return buttonPressedStates.TryGetValue(normalizedName, out bool value) && value;
@@ -582,10 +486,8 @@ namespace UniverseLib.Input
 
         public static bool GetButtonWasPressed(string buttonName)
         {
-            string normalizedName = buttonName.ToLower();
-            normalizedName = PropToKeycode(normalizedName);
-            //ExplorerCore.LogWarning($"Getting button was pressed state for: {normalizedName}");
-            if (buttonControls.TryGetValue(normalizedName, out var button))
+            string normalizedName = PropToKeycode(buttonName.ToLower());
+            if (buttonControls.TryGetValue(normalizedName, out object button))
             {
                 wasPressedProp.GetValue(button);
                 return buttonWasPressedStates.TryGetValue(normalizedName, out bool value) && value;
@@ -593,126 +495,73 @@ namespace UniverseLib.Input
             return false;
         }
 
-        public static bool GetActionInProgress(string actionName)
+        public static bool GetButtonWasReleased(string buttonName)
         {
-            string normalizedName = actionName.ToLower();
-            normalizedName = PropToKeycode(normalizedName);
-            //ExplorerCore.LogWarning($"Getting button action in progress state for: {normalizedName}");
-            if (buttonControls.TryGetValue(normalizedName, out var button))
+            string normalizedName = PropToKeycode(buttonName.ToLower());
+            if (buttonControls.TryGetValue(normalizedName, out object button))
             {
-                isInProgressMethod.Invoke(button, new object[] {});
-                return actionInProgressStates.TryGetValue(normalizedName, out bool value) && value;
+                wasReleasedProp.GetValue(button);
+                return buttonWasReleasedStates.TryGetValue(normalizedName, out bool value) && value;
             }
             return false;
         }
 
-        public static bool GetKey(KeyCode key)
-        {
-            string buttonName = key.ToString();
-            return GetButtonPressed($"/Keyboard/{buttonName}");
-        }
-
         public static bool GetMouseButton(int button)
         {
-            var mouseType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Mouse, Unity.InputSystem");
-            var currentProp = mouseType?.GetProperty("current", BindingFlags.Public | BindingFlags.Static);
-            var mouseInstance = currentProp?.GetValue(null);
-            if (mouseInstance == null) return false;
-
-            // Define which mouse button corresponds to which property
-            string propName = button switch
+            string buttonPath = button switch
             {
-                0 => "leftButton",
-                1 => "rightButton",
-                2 => "middleButton",
-                3 => "forwardButton",
-                4 => "backButton",
-                _ => null
+                0 => "/mouse/leftbutton",
+                1 => "/mouse/rightbutton",
+                2 => "/mouse/middlebutton",
+                3 => "/mouse/forwardbutton",
+                4 => "/mouse/backbutton",
+                _ => $"/mouse/button{button}"
             };
 
-            if (propName == null)
-                return false;
-
-            var buttonProp = mouseType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
-            var buttonControl = buttonProp?.GetValue(mouseInstance);
-            if (buttonControl == null)
-                return false;
-
-            // Use reflection to check if it's pressed
-            var buttonControlType = ReflectionUtility.GetTypeByName("UnityEngine.InputSystem.Controls.ButtonControl, Unity.InputSystem");
-            var isPressedProp = buttonControlType?.GetProperty("isPressed", BindingFlags.Public | BindingFlags.Instance);
-            var result = isPressedProp?.GetValue(buttonControl);
-
-            return buttonPressedStates.TryGetValue($"/mouse/{propName.ToLower()}", out bool value) && value;
+            return GetButtonPressed(buttonPath);
         }
 
-        public static void Postfix(object __instance, ref bool __result)
+        public static bool GetMouseButtonDown(int button){
+            string buttonPath = button switch
+            {
+                0 => "/mouse/leftbutton",
+                1 => "/mouse/rightbutton",
+                2 => "/mouse/middlebutton",
+                3 => "/mouse/forwardbutton",
+                4 => "/mouse/backbutton",
+                _ => $"/mouse/button{button}"
+            };
+            return GetButtonWasPressed(buttonPath);
+        }
+
+        // --- Postfixes ---
+
+        private static void Postfix_IsPressed(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, buttonPressedStates);
+
+        private static void Postfix_WasPressedThisFrame(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, buttonWasPressedStates);
+
+        private static void Postfix_WasReleasedThisFrame(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, buttonWasReleasedStates);
+
+        private static void Postfix_IsValueConsideredPressed(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, buttonIsValueConsideredPressedStates);
+
+        private static void Postfix_IsInProgress(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, actionInProgressStates);
+
+        private static void Postfix_WasPerformedThisFrame(object __instance, ref bool __result)
+            => StoreState(__instance, ref __result, actionWasPerformedStates);
+
+        private static void StoreState(object __instance, ref bool __result, Dictionary<string, bool> dict)
         {
             try
             {
-                if (__instance != null)
-                {
-                    Type type = __instance.GetType();
-                    string controlPath = string.Empty;
-
-                    try
-                    {
-                        var pathProp = type.GetProperty("path") ?? type.GetProperty("name");
-                        if (pathProp != null)
-                        {
-                            var value = pathProp.GetValue(__instance);
-                            controlPath = value?.ToString() ?? string.Empty;
-                        }
-                    }
-                    catch (Exception ex) 
-                    { 
-                        ExplorerCore.LogWarning($"Error getting control path: {ex.Message}");
-                    }
-
-                    // Store in appropriate dictionary based on calling method
-                    var method = new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod();
-                    if (method != null)
-                    {
-                        string methodName = method.Name;
-
-                        try
-                        {
-                            string normalizedPath = controlPath.ToLower();
-                            if (methodName.Contains("IsPressed") || methodName.Contains("get_isPressed") || methodName.Contains("IsValueConsideredPressed"))
-                            {
-                                //if (__result) ExplorerCore.LogWarning($"Storing button pressed state for {normalizedPath}: {__result}");
-                                buttonPressedStates[normalizedPath] = __result;
-                            }
-                            else if (methodName.Contains("WasPressedThisFrame") || methodName.Contains("get_wasPressedThisFrame"))
-                            {
-                                //if (__result) ExplorerCore.LogWarning($"Storing button was pressed this frame state for {normalizedPath}: {__result}");
-                                buttonWasPressedStates[normalizedPath] = __result;
-                            }
-                            else if (methodName.Contains("IsInProgress"))
-                            {
-                                //if (__result) ExplorerCore.LogWarning($"Storing action in progress state for {normalizedPath}: {__result}");
-                                actionInProgressStates[normalizedPath] = __result;
-                            }
-                            else if (methodName.Contains("WasPerformedThisFrame") || methodName.Contains("get_WasPerformedThisFrame"))
-                            {
-                                //if (__result) ExplorerCore.LogWarning($"Storing action was performed this frame state for {normalizedPath}: {__result}");
-                                actionWasPerformedStates[normalizedPath] = __result;
-                            }
-                            else
-                            {
-                                ExplorerCore.LogWarning($"Method name did not match any known patterns: {methodName}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            ExplorerCore.LogWarning($"Error storing input state: {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        ExplorerCore.LogWarning("Could not get calling method from stack trace");
-                    }
-                }
+                Type type = __instance.GetType();
+                PropertyInfo pathProp = type.GetProperty("path") ?? type.GetProperty("name");
+                string key = (pathProp?.GetValue(__instance)?.ToString() ?? string.Empty).ToLower();
+                dict[key] = __result;
 
                 if (FreeCamPanel.ShouldOverrideInput())
                 {
@@ -721,18 +570,8 @@ namespace UniverseLib.Input
             }
             catch (Exception ex)
             {
-                ExplorerCore.LogWarning($"Error in OverrideNewInput: {ex.Message}\n{ex.StackTrace}");
+                ExplorerCore.LogWarning($"Failed to store state: {ex.Message}");
             }
-        }
-
-        public static bool Prefix(object __instance, ref bool __runOriginal)
-        {
-            if (FreeCamPanel.ShouldOverrideInput())
-            {
-                return true;
-            }
-
-            return true;
         }
 
         // Input system property name doesnt match the KeyCode enum name, so we need to map some
