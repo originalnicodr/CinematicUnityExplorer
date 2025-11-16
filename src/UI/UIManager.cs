@@ -1,6 +1,7 @@
 ﻿using UnityExplorer.Config;
 using UnityExplorer.CSConsole;
 using UnityExplorer.Inspectors;
+using UnityExplorer.Inspectors.MouseInspectors;
 using UnityExplorer.UI.Panels;
 using UnityExplorer.UI.Widgets;
 using UniverseLib.Input;
@@ -21,6 +22,7 @@ namespace UnityExplorer.UI
             AutoCompleter,
             UIInspectorResults,
             WorldInspectorResults,
+            RendererInspectorResults,
             HookManager,
             Clipboard,
             Freecam,
@@ -106,6 +108,7 @@ namespace UnityExplorer.UI
             UIPanels.Add(Panels.Options, new OptionsPanel(UiBase));
             UIPanels.Add(Panels.UIInspectorResults, new MouseInspectorResultsPanel(UiBase));
             UIPanels.Add(Panels.WorldInspectorResults, new WorldInspectorResultsPanel(UiBase));
+            UIPanels.Add(Panels.RendererInspectorResults, new RendererInspectorResultPanel(UiBase));
 
             MouseInspector.inspectorUIBase = UniversalUI.RegisterUI(MouseInspector.UIBaseGUID, null);
             new MouseInspector(MouseInspector.inspectorUIBase);
