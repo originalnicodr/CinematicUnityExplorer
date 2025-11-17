@@ -24,6 +24,7 @@ namespace UnityExplorer.UI
             WorldInspectorResults,
             RendererInspectorResults,
             EnemyInspectorResults,
+            HudInspectorResults,
             HookManager,
             Clipboard,
             Freecam,
@@ -111,6 +112,7 @@ namespace UnityExplorer.UI
             UIPanels.Add(Panels.WorldInspectorResults, new WorldInspectorResultsPanel(UiBase));
             UIPanels.Add(Panels.RendererInspectorResults, new RendererInspectorResultPanel(UiBase));
             UIPanels.Add(Panels.EnemyInspectorResults, new EnemyInspectorResultsPanel(UiBase));
+            UIPanels.Add(Panels.HudInspectorResults, new HudInspectorResultsPanel(UiBase));
 
             MouseInspector.inspectorUIBase = UniversalUI.RegisterUI(MouseInspector.UIBaseGUID, null);
             new MouseInspector(MouseInspector.inspectorUIBase);

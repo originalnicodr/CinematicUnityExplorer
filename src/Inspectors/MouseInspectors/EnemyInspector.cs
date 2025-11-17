@@ -28,7 +28,7 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         {
             MainCamera = cam;
             MouseInspector.Instance.UpdateInspectorTitle(
-                $"<b>World Inspector ({MainCamera.name})</b> (press <b>ESC</b> to cancel)"
+                $"<b>Enemy Inspector ({MainCamera.name})</b> (press <b>ESC</b> to cancel)"
             );
         }
 

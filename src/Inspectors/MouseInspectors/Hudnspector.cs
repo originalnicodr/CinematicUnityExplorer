@@ -6,7 +6,7 @@ using UnityExplorer.UI.Panels;
 
 namespace UnityExplorer.Inspectors.MouseInspectors
 {
-    public class RendererInspector : MouseInspectorBase
+    public class HudInspector : MouseInspectorBase
     {
         private static Camera MainCamera;
         public static readonly List<GameObject> LastHitObjects = new();
@@ -62,7 +62,7 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         {
             MainCamera = cam;
             MouseInspector.Instance.UpdateInspectorTitle(
-                $"<b>Renderer Inspector ({MainCamera.name})</b> (press <b>ESC</b> to cancel)"
+                $"<b>Hud Inspector ({MainCamera.name})</b> (press <b>ESC</b> to cancel)"
             );
         }
 
@@ -81,7 +81,7 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         IEnumerator SetPanelActiveCoro()
         {
             yield return null;
-            RendererInspectorResultPanel panel = UIManager.GetPanel<RendererInspectorResultPanel>(UIManager.Panels.RendererInspectorResults);
+            HudInspectorResultsPanel panel = UIManager.GetPanel<HudInspectorResultsPanel>(UIManager.Panels.HudInspectorResults);
             panel.SetActive(true);
             panel.ShowResults();
         }
@@ -92,6 +92,15 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         /// </summary>
         private static Camera EnsureMainCamera()
         {
+            foreach (var camera in Camera.allCameras)
+            {
+                if (camera.name == "HudCamera")
+                {
+                    AssignCamAndUpdateTitle(camera);
+                    return MainCamera;
+                }
+            }
+
             if (MainCamera)
             {
                 // We still call this in case the last title was from the UIInspector
@@ -152,7 +161,7 @@ namespace UnityExplorer.Inspectors.MouseInspectors
             {
                 rendererCache = UnityEngine.Object.FindObjectsOfType<Renderer>();
             }
-    
+
             Lines.Clear();
 
             var p = GetCurrentMousePosition();
