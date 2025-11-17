@@ -55,6 +55,7 @@ namespace UnityExplorer.UI.Panels
             MouseInspectDropdown.options.Add(new Dropdown.OptionData("World"));
             MouseInspectDropdown.options.Add(new Dropdown.OptionData("UI"));
             MouseInspectDropdown.options.Add(new Dropdown.OptionData("Renderer"));
+            MouseInspectDropdown.options.Add(new Dropdown.OptionData("Enemy"));
             mouseDropdown.transform.SetSiblingIndex(0);
 
             // add close all button to titlebar

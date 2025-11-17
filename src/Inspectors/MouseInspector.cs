@@ -12,16 +12,18 @@ namespace UnityExplorer.Inspectors
     {
         World,
         UI,
-        Renderer
+        Renderer,
+        Enemy
     }
 
     public class MouseInspector : PanelBase
     {
         public static MouseInspector Instance { get; private set; }
 
-        private readonly RendererInspector rendererInspector;
         private readonly WorldInspector worldInspector;
         private readonly UiInspector uiInspector;
+        private readonly RendererInspector rendererInspector;
+        private readonly EnemyInspector enemyInspector;
 
         public static bool Inspecting { get; set; }
         public static MouseInspectMode Mode { get; set; }
@@ -31,6 +33,7 @@ namespace UnityExplorer.Inspectors
             MouseInspectMode.UI => uiInspector,
             MouseInspectMode.World => worldInspector,
             MouseInspectMode.Renderer => rendererInspector,
+            MouseInspectMode.Enemy => enemyInspector,
             _ => null,
         };
 
@@ -60,6 +63,7 @@ namespace UnityExplorer.Inspectors
             worldInspector = new WorldInspector();
             uiInspector = new UiInspector();
             rendererInspector = new RendererInspector();
+            enemyInspector = new EnemyInspector();
         }
 
         public static void OnDropdownSelect(int index)
@@ -70,6 +74,7 @@ namespace UnityExplorer.Inspectors
                 case 1: Instance.StartInspect(MouseInspectMode.World, (obj) => InspectorManager.Inspect(obj, null)); break;
                 case 2: Instance.StartInspect(MouseInspectMode.UI, (obj) => InspectorManager.Inspect(obj, null)); break;
                 case 3: Instance.StartInspect(MouseInspectMode.Renderer, (obj) => InspectorManager.Inspect(obj, null)); break;
+                case 4: Instance.StartInspect(MouseInspectMode.Enemy, (obj) => InspectorManager.Inspect(obj, null)); break;
             }
             InspectorPanel.Instance.MouseInspectDropdown.value = 0;
         }
