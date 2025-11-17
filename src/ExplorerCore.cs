@@ -7,7 +7,6 @@ global using UnityEngine;
 global using UnityEngine.UI;
 global using UniverseLib;
 global using UniverseLib.Utility;
-using UnityExplorer.CatmullRom;
 using UnityExplorer.Config;
 using UnityExplorer.ObjectExplorer;
 using UnityExplorer.Runtime;
@@ -59,6 +58,11 @@ namespace UnityExplorer
 
             //Extra inits
             ArrowGenerator.PatchLights();
+
+            //Patch
+            UnityExplorerPlus.ParseUtility.ParseManager.Init();
+            Harmony.PatchAll(typeof(CinematicUnityExplorer.Patches.CinematicUnityExplorerPatches)); // 應用所有定義在 CinematicUnityExplorerPatches 中的補丁
+
         }
 
         // Do a delayed setup so that objects aren't destroyed instantly.
