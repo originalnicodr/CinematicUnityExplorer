@@ -34,24 +34,24 @@ namespace UnityExplorer.UI.Panels
             buttonScrollPool.Refresh(true, true);
         }
 
-        private List<GameObject> GetEntries() => WorldInspector.LastHitObjects;
+        private List<GameObject> GetEntries() => RendererInspector.LastHitObjects;
 
         private bool ShouldDisplayCell(object cell, string filter) => true;
 
         private void OnCellClicked(int index)
         {
-            if (index >= WorldInspector.LastHitObjects.Count)
+            if (index >= RendererInspector.LastHitObjects.Count)
                 return;
 
-            InspectorManager.Inspect(WorldInspector.LastHitObjects[index]);
+            InspectorManager.Inspect(RendererInspector.LastHitObjects[index]);
         }
 
         private void SetCell(ButtonCell cell, int index)
         {
-            if (index >= WorldInspector.LastHitObjects.Count)
+            if (index >= RendererInspector.LastHitObjects.Count)
                 return;
 
-            GameObject obj = WorldInspector.LastHitObjects[index];
+            GameObject obj = RendererInspector.LastHitObjects[index];
             cell.Button.ButtonText.text = $"<color=cyan>{obj.name}</color> ({obj.transform.GetTransformPath(true)})";
         }
 

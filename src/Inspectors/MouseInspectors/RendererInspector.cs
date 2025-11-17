@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using CinematicUnityExplorer.Inspectors;
+using CinematicUnityExplorer.LineDrawing;
+using System.Collections;
 using UnityExplorer.UI;
 using UnityExplorer.UI.Panels;
 
@@ -9,6 +11,38 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         private static Camera MainCamera;
         public static readonly List<GameObject> LastHitObjects = new();
         private static readonly List<GameObject> currentHitObjects = new();
+        private List<TriangleVertices> vert = new List<TriangleVertices>(); // 使用你的自定義結構體
+        public Renderer[] rendererCache = null;
+        public float cacheTime = 0;
+
+        public List<LineData> Lines { get; } = new();
+
+        private void AddLine(Vector2 a, Vector2 b, float z)
+        {
+            //UnityExplorerPlus.Instance.settings.enableRendererBox.Value
+            if (!true) return;
+            var c = Mathf.RoundToInt((z * 50) % 255) / 255f;
+            var color = new Color(1, c, c, 1);
+            Lines.Add(new(LocalToScreenPoint(a), LocalToScreenPoint(b), color, Mathf.RoundToInt(z * 100)));
+        }
+
+        private Vector2 LocalToScreenPoint(Vector3 point)
+        {
+            Vector2 result = MainCamera.WorldToScreenPoint(point);
+            return new Vector2((int)Math.Round(result.x), (int)Math.Round(Screen.height - result.y));
+        }
+
+        public static bool TestPointInTrig(Vector2 a, Vector2 b, Vector2 c, Vector2 p)
+        {
+            var signOfTrig = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+            var signOfAB = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+            var signOfCA = (a.x - c.x) * (p.y - c.y) - (a.y - c.y) * (p.x - c.x);
+            var signOfBC = (c.x - b.x) * (p.y - c.y) - (c.y - b.y) * (p.x - c.x);
+            var d1 = signOfAB * signOfTrig > 0;
+            var d2 = signOfCA * signOfTrig > 0;
+            var d3 = signOfBC * signOfTrig > 0;
+            return d1 && d2 && d3;
+        }
 
         public override void OnBeginMouseInspect()
         {
@@ -111,21 +145,90 @@ namespace UnityExplorer.Inspectors.MouseInspectors
                 return;
             }
 
-            Ray ray = MainCamera.ScreenPointToRay(mousePos);
-            var tmp = new Vector3(ray.origin.x, ray.origin.y, 0f);
-            ray.origin = tmp;
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            vert.Clear(); // 確保每次更新時都清空
 
-            RaycastHit2D[] hits = Physics2D.RaycastAll(ray.origin, ray.direction, Mathf.Infinity, Physics2D.DefaultRaycastLayers);
-
-            if (hits.Length > 0)
+            if (Time.unscaledTime - cacheTime > 0.5f || rendererCache is null)
             {
-                foreach (var hit in hits)
+                rendererCache = UnityEngine.Object.FindObjectsOfType<Renderer>();
+            }
+    
+            Lines.Clear();
+
+            var p = GetCurrentMousePosition();
+
+            foreach (var v in rendererCache
+                .Where(x => x != null)
+                .Where(x => x.isVisible)
+                .Where(x => x.enabled)
+                .Where(x => x.gameObject.activeInHierarchy)
+                .OrderBy(x => x.transform.position.z))
+            {
+                Vector2 pos = v.transform.position;
+                Vector3 pos3 = v.transform.position;
+                var scale = new Vector3(v.transform.GetScaleX(), v.transform.GetScaleY(), 1);
+                if (v is MeshRenderer mr)
                 {
-                    if (hit.collider != null)
+                    var filter = v.GetComponent<MeshFilter>();
+                    if (filter == null) continue;
+                    var mesh = filter.sharedMesh;
+                    if (mesh == null) continue;
+                    var points = mesh.vertices;
+                    vert.Clear();
+                    bool isTouch = false;
+
+                    for (int i = 0; i < mesh.subMeshCount; i++)
                     {
-                        if (hit.collider.gameObject)
+                        var trig = filter.sharedMesh.GetTriangles(i);
+                        for (int i2 = 0; i2 < trig.Length; i2 += 3)
                         {
-                            currentHitObjects.Add(hit.collider.gameObject);
+                            var a = points[trig[i]].MultiplyElements(scale) + (Vector3)pos;
+                            var b = points[trig[i + 1]].MultiplyElements(scale) + (Vector3)pos;
+                            var c = points[trig[i + 2]].MultiplyElements(scale) + (Vector3)pos;
+                            vert.Add(new TriangleVertices(a, b, c));
+                            if (!isTouch && TestPointInTrig(a, b, c, p))
+                            {
+                                currentHitObjects.Add(v.gameObject);
+                                isTouch = true;
+                            }
+                        }
+                    }
+                    if (isTouch)
+                    {
+                        foreach (var triangle in vert)
+                        {
+                            AddLine(triangle.VertexA, triangle.VertexB, pos3.z);
+                            AddLine(triangle.VertexB, triangle.VertexC, pos3.z);
+                            AddLine(triangle.VertexA, triangle.VertexC, pos3.z);
+                        }
+                    }
+                }
+                else if (v is SpriteRenderer sprite)
+                {
+                    if (sprite.sprite == null) continue;
+                    var points = sprite.sprite.vertices;
+                    var trig = sprite.sprite.triangles;
+                    vert.Clear();
+                    bool isTouch = false;
+                    for (int i = 0; i < trig.Length; i += 3)
+                    {
+                        var a = points[trig[i]].MultiplyElements(scale) + pos;
+                        var b = points[trig[i + 1]].MultiplyElements(scale) + pos;
+                        var c = points[trig[i + 2]].MultiplyElements(scale) + pos;
+                        vert.Add(new TriangleVertices(a, b, c));
+                        if (!isTouch && TestPointInTrig(a, b, c, p))
+                        {
+                            currentHitObjects.Add(v.gameObject);
+                            isTouch = true;
+                        }
+                    }
+                    if (isTouch)
+                    {
+                        foreach (var (a, b, c) in vert)
+                        {
+                            AddLine(a, b, pos3.z);
+                            AddLine(b, c, pos3.z);
+                            AddLine(a, c, pos3.z);
                         }
                     }
                 }
@@ -137,7 +240,7 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         internal void OnHitGameObject()
         {
             if (currentHitObjects.Any())
-                MouseInspector.Instance.UpdateObjectNameLabel($"Click to view World Objects under mouse: {currentHitObjects.Count}");
+                MouseInspector.Instance.UpdateObjectNameLabel($"Click to view Renderer Objects under mouse: {currentHitObjects.Count}");
             else
                 MouseInspector.Instance.UpdateObjectNameLabel($"No World objects under mouse.");
 
@@ -146,6 +249,14 @@ namespace UnityExplorer.Inspectors.MouseInspectors
         public override void OnEndInspect()
         {
             // not needed
+        }
+
+        public static Vector2 GetCurrentMousePosition()
+        {
+            var cam = MainCamera;
+            var mousePos = Input.mousePosition;
+            mousePos.z = cam.WorldToScreenPoint(Vector3.zero).z;
+            return cam.ScreenToWorldPoint(mousePos);
         }
     }
 }
