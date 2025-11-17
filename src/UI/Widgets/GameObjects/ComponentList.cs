@@ -85,7 +85,7 @@ namespace UnityExplorer.UI.Widgets
         private static readonly Dictionary<string, string> compToStringCache = new();
 
         // Called from ButtonListHandler.SetCell, will be valid
-        private void SetComponentCell(ComponentCell cell, int index)
+        public void SetComponentCell(ComponentCell cell, int index)
         {
             List<Component> entries = GetEntries();
             cell.Enable();

@@ -1,38 +1,62 @@
 ﻿using System;
+using System.Reflection; // 需要這個命名空間來使用 MethodInfo, PropertyInfo 等
 using HarmonyLib;
+using UnityEngine;
+using UnityExplorer;
 using UnityExplorer.CacheObject;
 using UnityExplorer.CacheObject.Views;
+using UnityExplorer.Inspectors;
+using UnityExplorer.UI.Widgets;
+using UniverseLib.UI.Models;
 using UnityExplorerPlus.ParseUtility; // 引用您的 ParseManager 命名空間
 
 namespace CinematicUnityExplorer.Patches
 {
-    [HarmonyPatch] // 這個標籤是讓 Harmony 掃描這個類中的所有 [HarmonyPatch] 方法
+    [HarmonyPatch]
     public static class CinematicUnityExplorerPatches
     {
         // --------------------------------------------------------------------------------------
+        // 靜態緩存 PlayMakerFSM 的 Type 物件，避免重複查找
+        // --------------------------------------------------------------------------------------
+        private static Type _playMakerFSMType = null;
+        private static Type GetPlayMakerFSMType()
+        {
+            if (_playMakerFSMType == null)
+            {
+                // 使用 UnityExplorer 自己的 ReflectionUtility.GetTypeByName 來獲取 PlayMakerFSM 類型
+                // 確保這裡的字符串是 PlayMakerFSM 的完整類型名稱，包括命名空間
+                _playMakerFSMType = ReflectionUtility.GetTypeByName("PlayMakerFSM");
+
+                if (_playMakerFSMType == null)
+                {
+                    //ExplorerCore.LogWarning("Could not find PlayMakerFSM type using ReflectionUtility.GetTypeByName. " +
+                    //                        "Make sure 'HutongGames.PlayMaker.PlayMakerFSM' is the correct full type name.");
+                }
+            }
+            return _playMakerFSMType;
+        }
+
+
+        // --------------------------------------------------------------------------------------
         // 補丁 1: 劫持 ToStringUtility.ToStringWithType
-        // 這是最核心的補丁，讓我們的 ParseManager 的自定義 ToString 能夠生效。
         // --------------------------------------------------------------------------------------
         [HarmonyPatch(typeof(ToStringUtility), nameof(ToStringUtility.ToStringWithType))]
         [HarmonyPrefix]
         public static bool ToStringWithType_Prefix(object value, Type fallbackType, bool includeNamespace, ref string __result)
         {
-            // 嘗試從 ParseManager 獲取自定義的 ToString 結果
             string customResult = ParseManager.TryGetCustomToString(value);
 
             if (customResult != null)
             {
-                __result = customResult; // 如果有自定義結果，則設置給 __result
-                return false;           // 返回 false，阻止原始 ToStringUtility.ToStringWithType 方法執行
+                __result = customResult;
+                return false;
             }
 
-            return true; // 返回 true，讓原始方法繼續執行
+            return true;
         }
 
         // --------------------------------------------------------------------------------------
         // 補丁 2: 確保 CacheObjectBase 顯示富文本
-        // 當 UnityExplorer 顯示一個被我們自定義 ToString 處理過的物件時，
-        // 需要確保其單元格的文本渲染器支持富文本。
         // --------------------------------------------------------------------------------------
         [HarmonyPatch(typeof(CacheObjectBase), "SetDataToCell")]
         [HarmonyPostfix]
@@ -40,57 +64,125 @@ namespace CinematicUnityExplorer.Patches
         {
             if (__instance.Value == null) return;
 
-            // 如果該類型或其基類已註冊自定義 ToString 處理
             if (ParseManager.IsTypeRegisteredForToString(__instance.Value.GetType()))
             {
-                // 我們需要讓 UnityExplorer 知道這個單元格的文本應該被解析為富文本。
-                // CacheObjectBase.SetValueState 是內部方法，需要反射來調用。
-                // 原始 UnityExplorerPlus 的 ParseManager 使用了 reflect 擴展方法。
-                // 如果沒有那個擴展方法，我們需要手動調用反射。
-
-                // 獲取 SetValueState 方法
                 MethodInfo setValueStateMethod = AccessTools.Method(typeof(CacheObjectBase), "SetValueState");
                 if (setValueStateMethod != null)
                 {
-                    // 創建一個 CacheObjectBase.ValueState 實例，設置 valueRichText 為 true
-                    // CacheObjectBase.ValueState 是一個結構體，可能沒有公共構造函數
-                    // 需要通過反射來創建或查找其屬性。
-                    // 這是最複雜的部分，因為 ValueState 可能沒有公共 API。
-                    // 作為簡化，如果 UnityExplorer 在 ToStringUtility.ToStringWithType 返回富文本後
-                    // 自動處理 richText，那麼這部分可以省略。
-                    // 如果它不自動處理，你需要更深入地研究 UnityExplorer 的內部。
-
-                    // 這裡先提供一個基於假設的方案，如果它不工作，則需要進一步調試。
-                    // 理想情況下，應該直接設置 cell 內部的 Text 組件的 .richText = true;
-                    // 但 CacheObjectCell 本身沒有直接暴露 Text 組件。
-
-                    // 嘗試設置一個已註冊類型的 richText 狀態。
-                    // 注意：這是對 UnityExplorer 內部實現的推測，可能需要根據實際情況調整。
-                    // 這個邏輯和您一開始的 `UnityExplorerPlus.ParseUtility.ParseManager` 中的 `On.UnityExplorer.CacheObject.CacheObjectBase.SetDataToCell` 邏輯是匹配的。
-                    // `SetValueState` 方法通常是這樣被調用的：
-                    // `self.Reflect().SetValueState(cell.Reflect(), new(valueRichText: true, inputActive: self.CanWrite, applyActive: self.CanWrite, inspectActive: true));`
-
-                    // 您需要確保 `UniverseLib.Reflection.ReflectExtensions` 是可用的，
-                    // 或者您手動實現類似的功能。
-
-                    // 為了避免對 ReflectExtensions 的依賴，這裡直接使用 Harmony 的 AccessTools 獲取內部類型和字段。
-                    // 獲取 ValueState 類型
                     Type valueStateType = AccessTools.Inner(typeof(CacheObjectBase), "ValueState");
                     if (valueStateType != null)
                     {
-                        // 創建 ValueState 實例 (需要所有參數)
+                        // 確保使用正確的構造函數或設置屬性
+                        // ValueState 是一個 struct，通常有所有參數的構造函數
+                        // 如果沒有，則需要創建默認實例後，再用反射設置字段。
+                        // 根據您原始的 UnityExplorerPlus 邏輯 `new(valueRichText: true, inputActive: self.CanWrite, applyActive: self.CanWrite, inspectActive: true)`
+                        // 這個構造函數順序是 `bool valueRichText, bool inputActive, bool applyActive, bool inspectActive`
                         object valueState = Activator.CreateInstance(
                             valueStateType,
-                            true, // valueRichText
-                            __instance.CanWrite, // inputActive
-                            __instance.CanWrite, // applyActive
-                            true // inspectActive
+                            true,                     // valueRichText: true
+                            __instance.CanWrite,      // inputActive
+                            __instance.CanWrite,      // applyActive
+                            true                      // inspectActive
                         );
 
                         // 調用 SetValueState 方法
                         setValueStateMethod.Invoke(__instance, new object[] { cell, valueState });
                     }
+                    else
+                    {
+                        //ExplorerCore.LogWarning("Could not find CacheObjectBase.ValueState type via reflection.");
+                    }
                 }
+                else
+                {
+                    //ExplorerCore.LogWarning("Could not find CacheObjectBase.SetValueState method via reflection.");
+                }
+            }
+        }
+
+        // --------------------------------------------------------------------------------------
+        // 補丁 3: 在 ComponentList 中顯示 PlayMakerFSM 的 FsmName
+        // --------------------------------------------------------------------------------------
+        [HarmonyPatch(typeof(ComponentList), nameof(ComponentList.SetComponentCell))]
+        [HarmonyPostfix]
+        public static void ComponentList_SetComponentCell_Postfix(ComponentList __instance, ComponentCell cell, int index)
+        {
+            // 調試日誌，確認 Harmony Patch 被觸發
+            //ExplorerCore.LogWarning($"ComponentList_SetComponentCell_Postfix: __instance={__instance}, cell={cell}, index={index}");
+
+            // 確保 __instance.Parent 是 GameObjectInspector 的實例
+            if (__instance.Parent is GameObjectInspector gameObjectInspector)
+            {
+                // 獲取 GameObjectInspector 正在檢查的實際 Unity GameObject
+                GameObject targetGameObject = gameObjectInspector.Target;
+
+                if (targetGameObject != null)
+                {
+                    // 獲取該 GameObject 上的所有組件
+                    Component[] allUnityComponents = targetGameObject.GetComponents<Component>();
+
+                    // 檢查索引是否有效
+                    if (index >= 0 && index < allUnityComponents.Length)
+                    {
+                        Component actualUnityComponent = allUnityComponents[index];
+
+                        // 調試日誌，顯示獲取到的組件類型
+                        //ExplorerCore.LogWarning($"Actual Unity Component at index {index}: {actualUnityComponent.GetType().Name}");
+
+                        // 獲取 PlayMakerFSM 的 Type 物件
+                        Type playMakerFSMType = GetPlayMakerFSMType();
+
+                        // 檢查獲取到的組件是否是 PlayMakerFSM 類型或其子類
+                        if (playMakerFSMType != null && playMakerFSMType.IsInstanceOfType(actualUnityComponent))
+                        {
+                            // 現在 actualUnityComponent 確實是 PlayMakerFSM 或其子類型的實例
+                            // 我們需要通過反射來獲取 FsmName 屬性
+                            try
+                            {
+                                // 獲取 FsmName 屬性
+                                PropertyInfo fsmNameProperty = playMakerFSMType.GetProperty(
+                                    "FsmName",
+                                    BindingFlags.Public | BindingFlags.Instance
+                                );
+
+                                if (fsmNameProperty != null)
+                                {
+                                    // 從 actualUnityComponent 實例中獲取 FsmName 的值
+                                    object fsmNameObject = fsmNameProperty.GetValue(actualUnityComponent, null);
+                                    string fsmName = fsmNameObject as string;
+
+                                    if (!string.IsNullOrEmpty(fsmName))
+                                    {
+                                        cell.Button.ButtonText.text = cell.Button.ButtonText.text
+                                            + "<color=grey>(</color><color=#7FFF00>"
+                                            + fsmName
+                                            + "</color><color=grey>)</color>";
+                                    }
+                                }
+                                else
+                                {
+                                    //ExplorerCore.LogWarning("PlayMakerFSM.FsmName property not found via reflection.");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                //ExplorerCore.LogWarning($"Error getting PlayMakerFSM.FsmName via reflection: {ex}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //ExplorerCore.LogWarning($"Index {index} out of bounds for {targetGameObject.name}'s components.");
+                    }
+                }
+                else
+                {
+                    //ExplorerCore.LogWarning("GameObjectInspector.Target is null.");
+                }
+            }
+            else
+            {
+                //ExplorerCore.LogWarning("Parent of ComponentList is not a GameObjectInspector.");
             }
         }
     }
