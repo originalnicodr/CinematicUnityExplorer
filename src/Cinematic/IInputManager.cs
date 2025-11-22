@@ -444,7 +444,7 @@ namespace UniverseLib.Input
             if (deviceType == null) return;
 
             PropertyInfo currentProp = deviceType.GetProperty("current", BindingFlags.Public | BindingFlags.Static);
-            object deviceInstance = currentProp?.GetValue(null);
+            object deviceInstance = currentProp?.GetValue(null, null);
             if (deviceInstance == null) return;
 
             foreach (PropertyInfo prop in deviceType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -454,11 +454,11 @@ namespace UniverseLib.Input
 
                 if (prop.PropertyType.FullName == controlTypeName)
                 {
-                    object control = prop.GetValue(deviceInstance);
+                    object control = prop.GetValue(deviceInstance, null);
                     if (control == null)
                         continue;
 
-                    string path = pathProp?.GetValue(control) as string;
+                    string path = pathProp?.GetValue(control, null) as string;
                     if (!string.IsNullOrEmpty(path))
                         buttonControls[path.ToLower()] = control;
                 }
@@ -478,7 +478,7 @@ namespace UniverseLib.Input
             string normalizedName = PropToKeycode(buttonName.ToLower());
             if (buttonControls.TryGetValue(normalizedName, out object button))
             {
-                isPressedProp.GetValue(button);
+                isPressedProp?.GetValue(button, null);
                 return buttonPressedStates.TryGetValue(normalizedName, out bool value) && value;
             }
             return false;
@@ -489,7 +489,7 @@ namespace UniverseLib.Input
             string normalizedName = PropToKeycode(buttonName.ToLower());
             if (buttonControls.TryGetValue(normalizedName, out object button))
             {
-                wasPressedProp.GetValue(button);
+                wasPressedProp?.GetValue(button, null);
                 return buttonWasPressedStates.TryGetValue(normalizedName, out bool value) && value;
             }
             return false;
@@ -500,7 +500,7 @@ namespace UniverseLib.Input
             string normalizedName = PropToKeycode(buttonName.ToLower());
             if (buttonControls.TryGetValue(normalizedName, out object button))
             {
-                wasReleasedProp.GetValue(button);
+                wasReleasedProp?.GetValue(button, null);
                 return buttonWasReleasedStates.TryGetValue(normalizedName, out bool value) && value;
             }
             return false;
@@ -560,7 +560,7 @@ namespace UniverseLib.Input
             {
                 Type type = __instance.GetType();
                 PropertyInfo pathProp = type.GetProperty("path") ?? type.GetProperty("name");
-                string key = (pathProp?.GetValue(__instance)?.ToString() ?? string.Empty).ToLower();
+                string key = (pathProp?.GetValue(__instance, null)?.ToString() ?? string.Empty).ToLower();
                 dict[key] = __result;
 
                 if (FreeCamPanel.ShouldOverrideInput())
