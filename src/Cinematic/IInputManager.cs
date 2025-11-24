@@ -52,7 +52,7 @@ namespace UniverseLib.Input
                 case InputType.Legacy:
                     return ILegacyInput.GetKeyDown(key);
                 case InputType.InputSystem:
-                    string buttonName = $"/Keyboard/{key.ToString()}";
+                    string buttonName = $"/keyboard/{key.ToString()}".ToLower();
                     return INewInputSystem.GetButtonWasPressed(buttonName);
                 case InputType.None:
                 default:
@@ -66,7 +66,7 @@ namespace UniverseLib.Input
                     return ILegacyInput.GetKeyUp(key);
                 case InputType.InputSystem:
                     // Closest equivalent in the new input system is "wasPressedThisFrame"?
-                    string buttonName = $"/Keyboard/{key.ToString()}";
+                    string buttonName = $"/keyboard/{key.ToString()}".ToLower();
                     return INewInputSystem.GetButtonWasReleased(buttonName);
                 case InputType.None:
                 default:
@@ -349,10 +349,11 @@ namespace UniverseLib.Input
         private static MethodInfo wasPerformedMethod;
 
         // --- State dictionaries ---
-        private static readonly Dictionary<string, object> buttonControls = new();
-        private static readonly Dictionary<string, bool> buttonPressedStates = new();
-        private static readonly Dictionary<string, bool> buttonWasPressedStates = new();
-        private static readonly Dictionary<string, bool> buttonWasReleasedStates = new();
+        internal static readonly Dictionary<string, object> buttonControls = new();
+        internal static readonly Dictionary<string, object> gamepadButtonControls = new();
+        internal static readonly Dictionary<string, bool> buttonPressedStates = new();
+        internal static readonly Dictionary<string, bool> buttonWasPressedStates = new();
+        internal static readonly Dictionary<string, bool> buttonWasReleasedStates = new();
         private static readonly Dictionary<string, bool> buttonIsValueConsideredPressedStates = new();
         private static readonly Dictionary<string, bool> actionInProgressStates = new();
         private static readonly Dictionary<string, bool> actionWasPerformedStates = new();
@@ -377,6 +378,8 @@ namespace UniverseLib.Input
 
             // === Cache controls ===
             GetButtonControls();
+
+            IGamepadInputInterceptor.Init();
         }
 
         private static void PatchButtonControl(Type buttonControlType)
@@ -435,10 +438,10 @@ namespace UniverseLib.Input
 
             RegisterDeviceControls("UnityEngine.InputSystem.Keyboard", "UnityEngine.InputSystem.Controls.KeyControl", pathProp);
             RegisterDeviceControls("UnityEngine.InputSystem.Mouse", "UnityEngine.InputSystem.Controls.ButtonControl", pathProp);
-            //RegisterDeviceControls("UnityEngine.InputSystem.Gamepad", "UnityEngine.InputSystem.Controls.ButtonControl", pathProp);
+            // Note: Gamepad buttons are registered by IGamepadInputInterceptor with proper path normalization
         }
 
-        private static void RegisterDeviceControls(string deviceTypeName, string controlTypeName, PropertyInfo pathProp)
+        internal static void RegisterDeviceControls(string deviceTypeName, string controlTypeName, PropertyInfo pathProp)
         {
             Type deviceType = ReflectionUtility.GetTypeByName($"{deviceTypeName}, Unity.InputSystem");
             if (deviceType == null) return;
@@ -469,39 +472,39 @@ namespace UniverseLib.Input
 
         public static bool GetKey(KeyCode key)
         {
-            string buttonName = key.ToString();
-            return GetButtonPressed($"/keyboard/{buttonName}");
+            string buttonName = PropToKeycode($"/keyboard/{key.ToString()}".ToLower());
+            return GetButtonPressed(buttonName);
         }
 
         public static bool GetButtonPressed(string buttonName)
         {
-            string normalizedName = PropToKeycode(buttonName.ToLower());
-            if (buttonControls.TryGetValue(normalizedName, out object button))
+            string key = buttonName.ToLower();
+            if (buttonControls.TryGetValue(key, out object button))
             {
                 isPressedProp?.GetValue(button, null);
-                return buttonPressedStates.TryGetValue(normalizedName, out bool value) && value;
+                return buttonPressedStates.TryGetValue(key, out bool value) && value;
             }
             return false;
         }
 
         public static bool GetButtonWasPressed(string buttonName)
         {
-            string normalizedName = PropToKeycode(buttonName.ToLower());
-            if (buttonControls.TryGetValue(normalizedName, out object button))
+            string key = buttonName.ToLower();
+            if (buttonControls.TryGetValue(key, out object button))
             {
                 wasPressedProp?.GetValue(button, null);
-                return buttonWasPressedStates.TryGetValue(normalizedName, out bool value) && value;
+                return buttonWasPressedStates.TryGetValue(key, out bool value) && value;
             }
             return false;
         }
 
         public static bool GetButtonWasReleased(string buttonName)
         {
-            string normalizedName = PropToKeycode(buttonName.ToLower());
-            if (buttonControls.TryGetValue(normalizedName, out object button))
+            string key = buttonName.ToLower();
+            if (buttonControls.TryGetValue(key, out object button))
             {
                 wasReleasedProp?.GetValue(button, null);
-                return buttonWasReleasedStates.TryGetValue(normalizedName, out bool value) && value;
+                return buttonWasReleasedStates.TryGetValue(key, out bool value) && value;
             }
             return false;
         }
@@ -561,6 +564,10 @@ namespace UniverseLib.Input
                 Type type = __instance.GetType();
                 PropertyInfo pathProp = type.GetProperty("path") ?? type.GetProperty("name");
                 string key = (pathProp?.GetValue(__instance, null)?.ToString() ?? string.Empty).ToLower();
+                
+                // Normalize gamepad paths so they match what IGamepadInputInterceptor registered
+                key = IGamepadInputInterceptor.NormalizeControlPath(key);
+                
                 dict[key] = __result;
 
                 if (FreeCamPanel.ShouldOverrideInput())
@@ -575,7 +582,7 @@ namespace UniverseLib.Input
         }
 
         // Input system property name doesnt match the KeyCode enum name, so we need to map some
-        private static string PropToKeycode(string propName)
+        public static string PropToKeycode(string propName)
         {
             return propName switch
             {

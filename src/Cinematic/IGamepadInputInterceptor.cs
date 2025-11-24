@@ -19,14 +19,13 @@ using IL2CPPUtils = Il2CppInterop.Common.Il2CppInteropUtils;
 namespace UniverseLib.Input
 {
     /// <summary>
-    /// Gamepad input interceptor for modding. Captures gamepad input without direct type references,
-    /// allowing you to block game input while capturing it for your own use.
+    /// Reflection wrapper to interact with gamepad inputs while blocking their actual state from the game.
     /// </summary>
     public static class IGamepadInputInterceptor
     {
         // --- Configuration ---
         private static bool _isEnabled = false;
-        private static int _targetGamepadIndex = 0; // 0 = first/current gamepad
+        private static int _targetGamepadIndex = 0;
 
         // --- Reflected types ---
         private static Type _gamepadType;
@@ -71,17 +70,10 @@ namespace UniverseLib.Input
 
         // --- Control collections ---
         // Maps normalized paths to control objects
-        private static readonly Dictionary<string, object> _buttonControls = new();
         private static readonly Dictionary<string, object> _axisControls = new();
         private static readonly Dictionary<string, object> _vector2Controls = new();
 
         // --- State dictionaries (populated by postfix patches) ---
-        // Current frame states
-        private static readonly Dictionary<string, bool> _buttonPressedStates = new();
-        private static readonly Dictionary<string, bool> _buttonWasPressedStates = new();
-        private static readonly Dictionary<string, bool> _buttonWasReleasedStates = new();
-
-        // Analog values
         private static readonly Dictionary<string, float> _axisValues = new();
         private static readonly Dictionary<string, Vector2> _vector2Values = new();
 
@@ -99,7 +91,7 @@ namespace UniverseLib.Input
 #endif
                 
                 LoadReflectedTypes();
-                if (_gamepadType == null || _buttonControlType == null)
+                if (_gamepadType == null || _axisControlType == null)
                 {
 #if IGAMEPAD_DEBUG
                     ExplorerCore.LogWarning("[IGamepadInputInterceptor] Failed to load required types");
@@ -107,7 +99,9 @@ namespace UniverseLib.Input
                     return;
                 }
 
-                PatchGamepadMethods();
+                // Only patch analog controls (buttons are handled by INewInputSystem)
+                PatchAnalogControls();
+                //INewInputSystem.Init() should have been run beforehand
                 DiscoverGamepadControls();
                 _isEnabled = true;
 
@@ -204,29 +198,10 @@ namespace UniverseLib.Input
 
         // --- Patching ---
 
-        private static void PatchGamepadMethods()
+        private static void PatchAnalogControls()
         {
             try
             {
-                if (_buttonControlType != null)
-                {
-                    PatchPropertyGetter(_buttonControlType, "isPressed", 
-                        nameof(Postfix_ButtonIsPressed), null);
-                    PatchPropertyGetter(_buttonControlType, "wasPressedThisFrame", 
-                        nameof(Postfix_ButtonWasPressed), null);
-                    PatchPropertyGetter(_buttonControlType, "wasReleasedThisFrame", 
-                        nameof(Postfix_ButtonWasReleased), null);
-
-                    MethodInfo isValueConsideredPressedMethod = _buttonControlType.GetMethod("IsValueConsideredPressed", BindingFlags.Public | BindingFlags.Instance);
-                    if (isValueConsideredPressedMethod != null)
-                    {
-                        PatchMethod(isValueConsideredPressedMethod, null, nameof(Postfix_ButtonIsValueConsideredPressed));
-#if IGAMEPAD_DEBUG
-                        ExplorerCore.LogWarning("[IGamepadInputInterceptor] Patched ButtonControl.IsValueConsideredPressed()");
-#endif
-                    }
-                }
-
                 if (_vector2ControlType != null)
                 {
                     MethodInfo vector2ReadValueMethod = _vector2ControlType.GetMethod("ReadValue", Type.EmptyTypes);
@@ -255,40 +230,6 @@ namespace UniverseLib.Input
             catch (Exception ex)
             {
                 ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Error during patching: {ex.Message}");
-            }
-        }
-
-        private static void PatchPropertyGetter(Type type, string propertyName, string postfixName, string prefixName)
-        {
-            try
-            {
-                PropertyInfo prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
-                if (prop?.GetGetMethod() == null)
-                {
-                    ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Property not found: {type.Name}.{propertyName}");
-                    return;
-                }
-
-#if CPP
-                if (IL2CPPUtils.GetIl2CppMethodInfoPointerFieldForGeneratedMethod(prop.GetGetMethod()) == null)
-                    return;
-#endif
-
-                MethodInfo getter = prop.GetGetMethod();
-                MethodInfo postfixMethod = postfixName != null ? AccessTools.Method(typeof(IGamepadInputInterceptor), postfixName) : null;
-                MethodInfo prefixMethod = prefixName != null ? AccessTools.Method(typeof(IGamepadInputInterceptor), prefixName) : null;
-
-                ExplorerCore.Harmony.Patch(getter,
-                    prefix: prefixMethod != null ? new HarmonyMethod(prefixMethod) : null,
-                    postfix: postfixMethod != null ? new HarmonyMethod(postfixMethod) : null);
-
-#if IGAMEPAD_DEBUG
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Patched {type.Name}.{propertyName}");
-#endif
-            }
-            catch (Exception ex)
-            {
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Failed to patch {type?.Name}.{propertyName}: {ex.Message}");
             }
         }
 
@@ -350,6 +291,14 @@ namespace UniverseLib.Input
 
                 string[] vector2Properties = new[] { "leftStick", "rightStick" };
 
+                // Clear any existing gamepad buttons from INewInputSystem before registering new ones
+                // This prevents duplicates when switching gamepads or re-initializing
+                //var keysToRemove = INewInputSystem.buttonControls.Keys.Where(k => k.StartsWith("/gamepad") || k.Contains("gamepad")).ToList();
+                //foreach (var key in keysToRemove)
+                //{
+                //    INewInputSystem.buttonControls.Remove(key);
+                //}
+
                 // Register all button controls
                 foreach (string propName in buttonProperties)
                 {
@@ -364,7 +313,7 @@ namespace UniverseLib.Input
                                 string normalizedPath = ExtractAndNormalizePath(control);
                                 if (!string.IsNullOrEmpty(normalizedPath))
                                 {
-                                    _buttonControls[normalizedPath] = control;
+                                    INewInputSystem.gamepadButtonControls[normalizedPath] = control;
 #if IGAMEPAD_DEBUG
                                     ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Registered button: {normalizedPath} ({propName})");
 #endif
@@ -401,7 +350,7 @@ namespace UniverseLib.Input
                                             string buttonPath = ExtractAndNormalizePath(buttonControl);
                                             if (!string.IsNullOrEmpty(buttonPath))
                                             {
-                                                _buttonControls[buttonPath] = buttonControl;
+                                                INewInputSystem.gamepadButtonControls[buttonPath] = buttonControl;
 #if IGAMEPAD_DEBUG
                                                 ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Registered dpad button: {buttonPath} (dpad.{direction})");
 #endif
@@ -514,10 +463,10 @@ namespace UniverseLib.Input
                     }
                 }
 
-                int totalControls = _buttonControls.Count + _axisControls.Count + _vector2Controls.Count;
+                int totalControls = INewInputSystem.gamepadButtonControls.Count + _axisControls.Count + _vector2Controls.Count;
 #if IGAMEPAD_DEBUG
                 ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Registered {totalControls} controls " +
-                    $"({_buttonControls.Count} buttons, {_axisControls.Count} axes, {_vector2Controls.Count} vectors)");
+                    $"({INewInputSystem.gamepadButtonControls.Count} buttons, {_axisControls.Count} axes, {_vector2Controls.Count} vectors)");
 #endif
             }
             catch (Exception ex)
@@ -637,7 +586,7 @@ namespace UniverseLib.Input
         /// <summary>
         /// Normalizes gamepad control paths to a common format across different controller types.
         /// </summary>
-        private static string NormalizeControlPath(string rawPath)
+        public static string NormalizeControlPath(string rawPath)
         {
             if (string.IsNullOrEmpty(rawPath))
                 return rawPath;
@@ -668,12 +617,9 @@ namespace UniverseLib.Input
 
         private static void ClearControlCaches()
         {
-            _buttonControls.Clear();
+            INewInputSystem.gamepadButtonControls.Clear();
             _axisControls.Clear();
             _vector2Controls.Clear();
-            _buttonPressedStates.Clear();
-            _buttonWasPressedStates.Clear();
-            _buttonWasReleasedStates.Clear();
             _axisValues.Clear();
             _vector2Values.Clear();
         }
@@ -689,14 +635,14 @@ namespace UniverseLib.Input
             if (!_isEnabled)
                 return false;
 
-            string normalized = NormalizeControlPath(buttonPath ?? "");
+            string key = buttonPath.ToLower();
 
 #if IGAMEPAD_DEBUG
-            ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed querying: {normalized}");
+            ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed querying: {key}");
 #endif
             
-            // Trigger the property getter to populate state
-            if (_buttonControls.TryGetValue(normalized, out object button) && _buttonIsPressedProp != null)
+            // Trigger the property getter to populate state via INewInputSystem
+            if (INewInputSystem.gamepadButtonControls.TryGetValue(key, out object button) && _buttonIsPressedProp != null)
             {
 #if IGAMEPAD_DEBUG
                 ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed found button, invoking getter");
@@ -706,10 +652,10 @@ namespace UniverseLib.Input
 #if IGAMEPAD_DEBUG
             else
             {
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed NOT found in _buttonControls. Available: {string.Join(", ", _buttonControls.Keys)}");
+                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed NOT found in gamepadButtonControls. Available: {string.Join(", ", INewInputSystem.gamepadButtonControls.Keys)}");
             }
 #endif
-            bool result = _buttonPressedStates.TryGetValue(normalized, out bool pressed) && pressed;
+            bool result = INewInputSystem.buttonPressedStates.TryGetValue(key, out bool pressed) && pressed;
 #if IGAMEPAD_DEBUG
             //ExplorerCore.LogWarning($"[IGamepadInputInterceptor] IsButtonPressed returning: {result}");
 #endif
@@ -724,15 +670,15 @@ namespace UniverseLib.Input
             if (!_isEnabled)
                 return false;
 
-            string normalized = NormalizeControlPath(buttonPath ?? "");
+            string key = buttonPath.ToLower();
             
-            // Trigger the property getter to populate state
-            if (_buttonControls.TryGetValue(normalized, out object button) && _buttonWasPressedProp != null)
+            // Trigger the property getter to populate state via INewInputSystem
+            if (INewInputSystem.gamepadButtonControls.TryGetValue(key, out object button) && _buttonWasPressedProp != null)
             {
                 _buttonWasPressedProp.GetValue(button, BindingFlags.Default, null, null, null);
             }
 
-            return _buttonWasPressedStates.TryGetValue(normalized, out bool pressed) && pressed;
+            return INewInputSystem.buttonWasPressedStates.TryGetValue(key, out bool pressed) && pressed;
         }
 
         /// <summary>
@@ -743,15 +689,15 @@ namespace UniverseLib.Input
             if (!_isEnabled)
                 return false;
 
-            string normalized = NormalizeControlPath(buttonPath ?? "");
+            string key = buttonPath.ToLower();
             
-            // Trigger the property getter to populate state
-            if (_buttonControls.TryGetValue(normalized, out object button) && _buttonWasReleasedProp != null)
+            // Trigger the property getter to populate state via INewInputSystem
+            if (INewInputSystem.gamepadButtonControls.TryGetValue(key, out object button) && _buttonWasReleasedProp != null)
             {
                 _buttonWasReleasedProp.GetValue(button, BindingFlags.Default, null, null, null);
             }
 
-            return _buttonWasReleasedStates.TryGetValue(normalized, out bool released) && released;
+            return INewInputSystem.buttonWasReleasedStates.TryGetValue(key, out bool released) && released;
         }
 
         /// <summary>
@@ -808,7 +754,7 @@ namespace UniverseLib.Input
         /// <summary>
         /// Gets all currently registered control paths.
         /// </summary>
-        public static IEnumerable<string> GetRegisteredButtonPaths() => _buttonControls.Keys;
+        public static IEnumerable<string> GetRegisteredButtonPaths() => INewInputSystem.gamepadButtonControls.Keys;
 
         /// <summary>
         /// Gets all currently registered axis paths.
@@ -821,103 +767,6 @@ namespace UniverseLib.Input
         public static IEnumerable<string> GetRegisteredVector2Paths() => _vector2Controls.Keys;
 
         // --- Postfix Methods (capture state and optionally block) ---
-
-        private static void Postfix_ButtonIsPressed(object __instance, ref bool __result)
-        {
-            if (__instance == null)
-                return;
-
-            // Verify the button control is properly attached to a device before proceeding
-            try
-            {
-                if (_deviceProp != null)
-                {
-                    object device = _deviceProp.GetValue(__instance, BindingFlags.Default, null, null, null);
-                    if (device == null)
-                        return; // Control not attached to a device, skip
-                }
-            }
-            catch
-            {
-                return; // If we can't check device, skip to be safe
-            }
-
-            string path = ExtractAndNormalizePath(__instance);
-            if (!string.IsNullOrEmpty(path))
-            {
-#if IGAMEPAD_DEBUG
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Postfix_ButtonIsPressed: {path} = {__result}");
-#endif
-                _buttonPressedStates[path] = __result;
-                if (_isEnabled && FreeCamPanel.ShouldOverrideInput())
-                    __result = false;
-            }
-        }
-
-        private static void Postfix_ButtonWasPressed(object __instance, ref bool __result)
-        {
-            if (__instance == null)
-                return;
-
-            // Verify the button control is properly attached to a device before proceeding
-            try
-            {
-                if (_deviceProp != null)
-                {
-                    object device = _deviceProp.GetValue(__instance, BindingFlags.Default, null, null, null);
-                    if (device == null)
-                        return; // Control not attached to a device, skip
-                }
-            }
-            catch
-            {
-                return; // If we can't check device, skip to be safe
-            }
-
-            string path = ExtractAndNormalizePath(__instance);
-            if (!string.IsNullOrEmpty(path))
-            {
-#if IGAMEPAD_DEBUG
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Postfix_ButtonWasPressed: {path} = {__result}");
-#endif
-                _buttonWasPressedStates[path] = __result;
-                if (_isEnabled && FreeCamPanel.ShouldOverrideInput())
-                    __result = false;
-            }
-        }
-
-        private static void Postfix_ButtonWasReleased(object __instance, ref bool __result)
-        {
-            if (__instance == null)
-                return;
-
-            // Verify the button control is properly attached to a device before proceeding
-            try
-            {
-                if (_deviceProp != null)
-                {
-                    object device = _deviceProp.GetValue(__instance, BindingFlags.Default, null, null, null);
-                    if (device == null)
-                        return; // Control not attached to a device, skip
-                }
-            }
-            catch
-            {
-                return; // If we can't check device, skip to be safe
-            }
-
-            string path = ExtractAndNormalizePath(__instance);
-            if (!string.IsNullOrEmpty(path))
-            {
-#if IGAMEPAD_DEBUG
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Postfix_ButtonWasReleased: {path} = {__result}");
-#endif
-                _buttonWasReleasedStates[path] = __result;
-                // Block input if interception is enabled
-                if (_isEnabled && FreeCamPanel.ShouldOverrideInput())
-                    __result = false;
-            }
-        }
 
         private static void Postfix_Vector2ReadValue(object __instance, ref object __result)
         {
@@ -1076,42 +925,6 @@ namespace UniverseLib.Input
                     ExplorerCore.LogWarning($"[IGamepadInputInterceptor] BLOCKING Postfix_AxisReadValue: {adjustedPath} (was {__result}, now 0f)");
 #endif
                     __result = 0f;
-                }
-            }
-        }
-
-        private static void Postfix_ButtonIsValueConsideredPressed(object __instance, ref bool __result)
-        {
-            if (__instance == null)
-                return;
-
-            try
-            {
-                if (_deviceProp != null)
-                {
-                    object device = _deviceProp.GetValue(__instance, BindingFlags.Default, null, null, null);
-                    if (device == null)
-                        return;
-                }
-            }
-            catch
-            {
-                return;
-            }
-
-            string path = ExtractAndNormalizePath(__instance);
-            // We are not caching this state currently, just logging and blocking if needed
-            if (!string.IsNullOrEmpty(path))
-            {
-#if IGAMEPAD_DEBUG
-                ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Postfix_ButtonIsValueConsideredPressed: {path} = {__result}");
-#endif
-                if (_isEnabled && FreeCamPanel.ShouldOverrideInput())
-                {
-#if IGAMEPAD_DEBUG
-                    ExplorerCore.LogWarning($"[IGamepadInputInterceptor] BLOCKING Postfix_ButtonIsValueConsideredPressed: {path} (was {__result}, now false)");
-#endif
-                    __result = false;
                 }
             }
         }
