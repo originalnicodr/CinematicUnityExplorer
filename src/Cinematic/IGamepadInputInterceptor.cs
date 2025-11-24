@@ -1,3 +1,6 @@
+// Uncomment to enable verbose logging in gamepad interceptor
+//#define IGAMEPAD_DEBUG
+
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -5,9 +8,6 @@ using HarmonyLib;
 using UnityEngine;
 using UnityExplorer;
 using UnityExplorer.UI.Panels;
-
-// Uncomment to enable verbose logging in gamepad interceptor
-// #define IGAMEPAD_DEBUG
 
 #if UNHOLLOWER
 using IL2CPPUtils = UnhollowerBaseLib.UnhollowerUtils;
@@ -644,7 +644,6 @@ namespace UniverseLib.Input
 
             string path = rawPath.ToLowerInvariant().Trim();
 
-            // Replace vendor-specific prefixes
             foreach (var kvp in _vendorPrefixMap)
             {
                 if (path.StartsWith(kvp.Key))
@@ -652,6 +651,16 @@ namespace UniverseLib.Input
                     path = kvp.Value + path.Substring(kvp.Key.Length);
                     break;
                 }
+            }
+
+            // Remove numeric gamepad suffix (/gamepad1 → /gamepad)
+            const string prefix = "/gamepad";
+            int prefixLen = prefix.Length;
+            if (path.StartsWith(prefix) &&
+                path.Length > prefixLen &&
+                char.IsDigit(path[prefixLen]))
+            {
+                path = prefix + path.Substring(prefixLen + 1);
             }
 
             return path;
@@ -955,12 +964,16 @@ namespace UniverseLib.Input
                         }
                     }
                 }
+#if IGAMEPAD_DEBUG
                 catch (Exception ex)
                 {
-#if IGAMEPAD_DEBUG
                     ExplorerCore.LogWarning($"[IGamepadInputInterceptor] Error in Postfix_Vector2ReadValue: {ex.Message}");
-#endif
                 }
+#else
+                catch
+                {
+                }
+#endif
             }
         }
 

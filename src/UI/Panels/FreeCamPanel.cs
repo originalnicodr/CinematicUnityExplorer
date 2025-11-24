@@ -616,26 +616,38 @@ namespace UnityExplorer.UI.Panels
             }
             
 
-            AddSpacer(5);
+            GameObject movespeedRow = AddInputField("MoveSpeed", "Move Speed:", "Default: 1", out moveSpeedInput, MoveSpeedInput_OnEndEdit, 85, 25);
+            moveSpeedInput.Text = desiredMoveSpeed.ToString();
 
-            GameObject posRow = AddInputField("Position", "Freecam Pos:", "eg. 0 0 0", out positionInput, PositionInput_OnEndEdit);
+            AddInputField("Position", "Freecam Pos:", "eg. 0 0 0", out positionInput, PositionInput_OnEndEdit, 100, 175, movespeedRow);
 
-            ButtonRef resetPosButton = UIFactory.CreateButton(posRow, "ResetButton", "Reset");
+            ButtonRef resetPosButton = UIFactory.CreateButton(movespeedRow, "ResetButton", "Reset");
             UIFactory.SetLayoutElement(resetPosButton.GameObject, minWidth: 70, minHeight: 25);
             resetPosButton.OnClick += OnResetPosButtonClicked;
 
-            AddSpacer(5);
+            Text componentsToDisableLabel = UIFactory.CreateLabel(ContentRoot, $"ComponentsToDisable_Label", "Disable Components/GameObjects:");
+            UIFactory.SetLayoutElement(componentsToDisableLabel.gameObject, minWidth: 250, minHeight: 25);
 
-            AddInputField("MoveSpeed", "Move Speed:", "Default: 1", out moveSpeedInput, MoveSpeedInput_OnEndEdit);
-            moveSpeedInput.Text = desiredMoveSpeed.ToString();
-
-            AddSpacer(5);
-
-            AddInputField("ComponentsToDisable", "Disable Components/GameObjects:", "CinemachineBrain", out componentsToDisableInput, ComponentsToDisableInput_OnEndEdit, 250);
+            componentsToDisableInput = UIFactory.CreateInputField(ContentRoot, $"componentsToDisable_Input", "CinemachineBrain");
+            UIFactory.SetLayoutElement(componentsToDisableInput.GameObject, minWidth: 50, minHeight: 25, flexibleWidth: 9999);
+            componentsToDisableInput.Component.GetOnEndEdit().AddListener(ComponentsToDisableInput_OnEndEdit);
             componentsToDisableInput.Text = ConfigManager.Custom_Components_To_Disable.Value;
             stringComponentsToDisable = ConfigManager.Custom_Components_To_Disable.Value.Split(',').Select(c => c.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
 
-            AddSpacer(5);
+            GameObject controllerRow = UIFactory.CreateHorizontalGroup(ContentRoot, "ControllerRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
+
+            Text ControllerLabel = UIFactory.CreateLabel(controllerRow, "Controller_label", " Controller:");
+            UIFactory.SetLayoutElement(ControllerLabel.gameObject, minWidth: 75, minHeight: 25);
+
+            GameObject controllerDropdownObj = UIFactory.CreateDropdown(controllerRow, "Controller_Dropdown", out Dropdown controllerDropdown, null, 14, (idx) => {
+                IGamepadInputInterceptor.SetTargetGamepad(idx);
+            });
+            UIFactory.SetLayoutElement(controllerDropdownObj, minHeight: 25, minWidth: 125);
+            // Maybe we can dynamically show the number of connected gamepads in the future
+            for (int i = 0; i < 4; i++)
+            {
+                controllerDropdown.options.Add(new Dropdown.OptionData($"Gamepad {i + 1}"));
+            }
 
             GameObject togglesRow = UIFactory.CreateHorizontalGroup(ContentRoot, "TogglesRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
 
@@ -773,15 +785,15 @@ namespace UnityExplorer.UI.Panels
             UIFactory.SetLayoutElement(obj, minHeight: height, flexibleHeight: 0);
         }
 
-        GameObject AddInputField(string name, string labelText, string placeHolder, out InputFieldRef inputField, Action<string> onInputEndEdit, int minTextWidth = 100)
+        GameObject AddInputField(string name, string labelText, string placeHolder, out InputFieldRef inputField, Action<string> onInputEndEdit, int minTextWidth = 100, int minInputWidth = 150, GameObject parent = null)
         {
-            GameObject row = UIFactory.CreateHorizontalGroup(ContentRoot, $"{name}_Group", false, false, true, true, 3, default, new(1, 1, 1, 0));
+            GameObject row = parent != null ? parent : UIFactory.CreateHorizontalGroup(ContentRoot, $"{name}_Group", false, false, true, true, 3, default, new(1, 1, 1, 0));
 
             Text posLabel = UIFactory.CreateLabel(row, $"{name}_Label", labelText);
             UIFactory.SetLayoutElement(posLabel.gameObject, minWidth: minTextWidth, minHeight: 25);
 
             inputField = UIFactory.CreateInputField(row, $"{name}_Input", placeHolder);
-            UIFactory.SetLayoutElement(inputField.GameObject, minWidth: 50, minHeight: 25, flexibleWidth: 9999);
+            UIFactory.SetLayoutElement(inputField.GameObject, minWidth: minInputWidth, minHeight: 25, flexibleWidth: 9999);
             inputField.Component.GetOnEndEdit().AddListener(onInputEndEdit);
 
             return row;
