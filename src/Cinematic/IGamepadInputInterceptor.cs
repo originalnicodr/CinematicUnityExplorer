@@ -204,7 +204,22 @@ namespace UniverseLib.Input
             {
                 if (_vector2ControlType != null)
                 {
-                    MethodInfo vector2ReadValueMethod = _vector2ControlType.GetMethod("ReadValue", Type.EmptyTypes);
+                    MethodInfo vector2ReadValueMethod = _vector2ControlType.GetMethod("ReadValue", 
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly, 
+                        null, Type.EmptyTypes, null);
+                    
+                    // If not found with DeclaredOnly, try getting from base type
+                    if (vector2ReadValueMethod == null)
+                    {
+                        Type baseType = _vector2ControlType.BaseType;
+                        if (baseType != null && baseType.IsGenericType)
+                        {
+                            vector2ReadValueMethod = baseType.GetMethod("ReadValue", 
+                                BindingFlags.Public | BindingFlags.Instance, 
+                                null, Type.EmptyTypes, null);
+                        }
+                    }
+                    
                     if (vector2ReadValueMethod != null)
                     {
                         PatchMethod(vector2ReadValueMethod, null, nameof(Postfix_Vector2ReadValue));
@@ -216,8 +231,22 @@ namespace UniverseLib.Input
 
                 if (_axisControlType != null)
                 {
-                    // Patch AxisControl.ReadValue() method
-                    MethodInfo readValueMethod = _axisControlType.GetMethod("ReadValue", Type.EmptyTypes);
+                    MethodInfo readValueMethod = _axisControlType.GetMethod("ReadValue", 
+                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly, 
+                        null, Type.EmptyTypes, null);
+                    
+                    // If not found with DeclaredOnly, try getting from base type
+                    if (readValueMethod == null)
+                    {
+                        Type baseType = _axisControlType.BaseType;
+                        if (baseType != null && baseType.IsGenericType)
+                        {
+                            readValueMethod = baseType.GetMethod("ReadValue", 
+                                BindingFlags.Public | BindingFlags.Instance, 
+                                null, Type.EmptyTypes, null);
+                        }
+                    }
+                    
                     if (readValueMethod != null)
                     {
                         PatchMethod(readValueMethod, null, nameof(Postfix_AxisReadValue));

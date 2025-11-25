@@ -1393,12 +1393,12 @@ namespace UnityExplorer.UI.Panels
 
             if (dpadUpPressed)
             {
-                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed;
+                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 5;
             }
 
             if (dpadDownPressed)
             {
-                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed;
+                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed * 5;
             }
 
             if (dpadLeftPressed)
@@ -1477,12 +1477,12 @@ namespace UnityExplorer.UI.Panels
 
             if (IInputManager.GetKey(ConfigManager.Decrease_FOV.Value))
             {
-                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed; 
+                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed * 5; 
             }
 
             if (IInputManager.GetKey(ConfigManager.Increase_FOV.Value))
             {
-                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed; 
+                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 5; 
             }
 
             if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value)){

@@ -100,27 +100,30 @@ I wrote a [guide](https://framedsc.com/GeneralGuides/cinematic-unity-explorer.ht
 
 The table below describes all of the relevant default hotkeys. You can edit them to your liking by going to the Options panel, changing the hotkeys you want, and saving the settings.
 
-Feature | Key
--|-
-Freecam | `Insert`
-Move the camera forward/left/right/backward | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`RightArrow`/`DownArrow`
-Move the camera upwards | `Space`
-Move the camera downwards | `LeftControl`
-Speed up movement | `LeftShift`
-Speed down movement | `LeftAlt`
-Change freecam orientation | Right mouse click
-Tilt left | `Numpad 1`
-Tilt right | `Numpad 3`
+Feature | Keyboard | Gamepad
+-|-|-
+Freecam | `Insert` | 
+Move the camera forward/left/right/backward | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`RightArrow`/`DownArrow` | Left stick
+Move the camera upwards | `Space` | `LT`
+Move the camera downwards | `LeftControl` | `RT`
+Speed up movement | `LeftShift` | `Y`
+Speed down movement | `LeftAlt` | `X`
+Change freecam orientation | Right mouse click | Right stick
+Tilt left | `Numpad 1` | Dpad left
+Tilt right | `Numpad 3` | Dpad right
 Reset tilt | `Numpad 2`
-Increase FOV | `Numpad +`
-Decrease FOV | `Numpad -`
-Reset FOV | `Numpad *`
+Increase FOV | `Numpad +` | Dpad up
+Decrease FOV | `Numpad -` | Dpad down
+Reset FOV | `Numpad *` | `B`
 Pause | `PageUp`
 Block Freecam movement and rotation | `Home`
 Block games input | `Numpad .`
 Frameskip | `PageDown`
 HUD Toggle | `Delete`
 Freeze NPC animations | `Numpad 0`
+
+> [!NOTE]  
+> Gamepad is only compatible if the game is using [Unity Input System](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html).
 
 # Features
 
