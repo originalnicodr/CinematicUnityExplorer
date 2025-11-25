@@ -641,6 +641,15 @@ namespace UniverseLib.Input
                 path = prefix + path.Substring(prefixLen + 1);
             }
 
+            // Normalize D-pad paths: /gamepad/up -> /gamepad/dpad/up
+            // Some versions of the engine/library return these names
+            if (path == "/gamepad/up" || path == "/gamepad/down" || 
+                path == "/gamepad/left" || path == "/gamepad/right")
+            {
+                string direction = path.Substring("/gamepad/".Length);
+                path = $"/gamepad/dpad/{direction}";
+            }
+
             return path;
         }
 

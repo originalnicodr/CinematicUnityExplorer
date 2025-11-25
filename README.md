@@ -111,9 +111,9 @@ Speed down movement | `LeftAlt` | `X`
 Change freecam orientation | Right mouse click | Right stick
 Tilt left | `Numpad 1` | Dpad left
 Tilt right | `Numpad 3` | Dpad right
-Reset tilt | `Numpad 2`
-Increase FOV | `Numpad +` | Dpad up
-Decrease FOV | `Numpad -` | Dpad down
+Reset tilt | `Numpad 2` | `A`
+Decrease FOV | `Numpad -` | Dpad up
+Increase FOV | `Numpad +` | Dpad down
 Reset FOV | `Numpad *` | `B`
 Pause | `PageUp`
 Block Freecam movement and rotation | `Home`

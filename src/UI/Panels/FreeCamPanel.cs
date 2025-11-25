@@ -1329,11 +1329,12 @@ namespace UnityExplorer.UI.Panels
             float rightTrigger = IGamepadInputInterceptor.GetAxisValue("/gamepad/righttrigger");
             bool yButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonnorth");
             bool xButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonwest");
+            bool aButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonsouth");
+            bool bButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttoneast");
             bool dpadUpPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/up");
             bool dpadDownPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/down");
             bool dpadLeftPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/left");
             bool dpadRightPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/right");
-            bool bButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonsouth");
 
             float moveSpeed = FreeCamPanel.desiredMoveSpeed * 0.01665f; //"0.01665f" (60fps) in place of Time.DeltaTime. DeltaTime causes issues when game is paused.
             float speedModifier = 1;
@@ -1369,18 +1370,6 @@ namespace UnityExplorer.UI.Panels
                 transform.position += transform.forward * leftStickY * moveSpeed;
             }
 
-            if (rightStickX != 0 || rightStickY != 0)
-            {
-                float rotationSpeed = moveSpeed * 30;
-                float newRotationX = transform.localEulerAngles.y + rightStickX * rotationSpeed;
-                float newRotationY = transform.localEulerAngles.x - rightStickY * rotationSpeed;
-
-                // Block the camera rotation to not go further than looking directly up or down.
-                newRotationY = newRotationY > 180f ? Mathf.Clamp(newRotationY, 270f, 360f) : Mathf.Clamp(newRotationY, -1f, 90.0f);
-
-                transform.localEulerAngles = new Vector3(newRotationY, newRotationX, transform.localEulerAngles.z);
-            }
-
             if (leftTrigger > 0)
             {
                 transform.position += transform.up * leftTrigger * moveSpeed;
@@ -1389,31 +1378,6 @@ namespace UnityExplorer.UI.Panels
             if (rightTrigger > 0)
             {
                 transform.position += transform.up * -rightTrigger * moveSpeed;
-            }
-
-            if (dpadUpPressed)
-            {
-                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 5;
-            }
-
-            if (dpadDownPressed)
-            {
-                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed * 5;
-            }
-
-            if (dpadLeftPressed)
-            {
-                transform.Rotate(0, 0, moveSpeed * 10, Space.Self);
-            }
-
-            if (dpadRightPressed)
-            {
-                transform.Rotate(0, 0, -moveSpeed * 10, Space.Self);
-            }
-
-            if (bButtonPressed)
-            {
-                FreeCamPanel.GetFreecam().fieldOfView = FreeCamPanel.currentCameraType == FreeCamPanel.FreeCameraType.New ? 60 : FreeCamPanel.originalCameraFOV;
             }
 
             // 90 degrees tilt when pressing the speed down hotkey
@@ -1428,15 +1392,15 @@ namespace UnityExplorer.UI.Panels
             }
             else
             {
-                if (IInputManager.GetKey(ConfigManager.Tilt_Left.Value)) {
+                if (IInputManager.GetKey(ConfigManager.Tilt_Left.Value) || dpadLeftPressed) {
                     transform.Rotate(0, 0, moveSpeed * 10, Space.Self);
                 }
-                else if (IInputManager.GetKey(ConfigManager.Tilt_Right.Value)) {
+                else if (IInputManager.GetKey(ConfigManager.Tilt_Right.Value) || dpadRightPressed) {
                     transform.Rotate(0, 0, - moveSpeed * 10, Space.Self);
                 }
             }
 
-            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value)){
+            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value) || aButtonPressed){
                 // Extract the forward direction of the original quaternion
                 Vector3 forwardDirection = transform.rotation * Vector3.forward;
                 // Reset the tilt by creating a new quaternion with no tilt
@@ -1475,17 +1439,29 @@ namespace UnityExplorer.UI.Panels
                 transform.rotation = pitchRotation * yawRotation * transform.rotation;*/
             }
 
-            if (IInputManager.GetKey(ConfigManager.Decrease_FOV.Value))
+            if (rightStickX != 0 || rightStickY != 0)
             {
-                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed * 5; 
+                float rotationSpeed = moveSpeed * 30;
+                float newRotationX = transform.localEulerAngles.y + rightStickX * rotationSpeed;
+                float newRotationY = transform.localEulerAngles.x - rightStickY * rotationSpeed;
+
+                // Block the camera rotation to not go further than looking directly up or down.
+                newRotationY = newRotationY > 180f ? Mathf.Clamp(newRotationY, 270f, 360f) : Mathf.Clamp(newRotationY, -1f, 90.0f);
+
+                transform.localEulerAngles = new Vector3(newRotationY, newRotationX, transform.localEulerAngles.z);
             }
 
-            if (IInputManager.GetKey(ConfigManager.Increase_FOV.Value))
+            if (IInputManager.GetKey(ConfigManager.Decrease_FOV.Value) || dpadUpPressed)
             {
-                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 5; 
+                FreeCamPanel.GetFreecam().fieldOfView = Mathf.Max(FreeCamPanel.GetFreecam().fieldOfView - moveSpeed * 3, 0.001f);
             }
 
-            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value)){
+            if (IInputManager.GetKey(ConfigManager.Increase_FOV.Value) || dpadDownPressed)
+            {
+                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 3; 
+            }
+
+            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value) || bButtonPressed){
                 FreeCamPanel.GetFreecam().fieldOfView = FreeCamPanel.currentCameraType == FreeCamPanel.FreeCameraType.New ? 60 : FreeCamPanel.originalCameraFOV;
             }
 
