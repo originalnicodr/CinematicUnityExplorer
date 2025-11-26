@@ -103,7 +103,7 @@ The table below describes all of the relevant default hotkeys. You can edit them
 Feature | Keyboard | Gamepad
 -|-|-
 Freecam | `Insert` | 
-Move the camera forward/left/right/backward | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`RightArrow`/`DownArrow` | Left stick
+Move the camera forward/left/backward/right | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`DownArrow`/`RightArrow`/ | Left stick
 Move the camera upwards | `Space` | `LT`
 Move the camera downwards | `LeftControl` | `RT`
 Speed up movement | `LeftShift` | `Y`
@@ -155,8 +155,8 @@ By default the camera only follows the object's position, but you can also make 
 
 As a side note, you can also "look at" a specific object in the world to force the camera to look directly toward it no matter the camera movement.
 
-### Game input block for Unity's legacy system
-Added game input block for Unity's legacy system. You can now block (or unblock) the game's input when using the freecam, as long as the game is using the Unity Legacy Input system. If the game uses a custom solution or the latest Unity system then this won't work. Implementing this for Unity's new system is in the backlog, so if you find a game using it (should say "Initialized new InputSystem support." on the logs) then please let me know so I can implement it using that game!
+### Game input block for Unity's Legacy and Input System package
+Added game input block for Unity's Legacy system and Unity Input System package. You can now block (or unblock) the game's input when using the freecam, as long as the game is using either of the mentioned systems. If the game uses a custom solution (or the actions engine system, as far as I understand), then this won't work.
 
 ## Lights manager
 It allows you to spawn spotlights and pointlights, as well as toggle the game's original lights to allow you to relight the scene however you want (a task that is pretty common for screenshots and lighting artists). Please note that this only turns off scene lights and won't turn off ambient light or lights created by emissive materials, effects, or shaders.
