@@ -122,7 +122,8 @@ namespace UnityExplorer.CatmullRom
         public void StartPath(){
             if(splinePoints == null || splinePoints.Length <= 2)
             {
-                ExplorerCore.Log(splinePoints);
+                int nodeCount = splinePoints?.Length ?? 0;
+                ExplorerCore.LogWarning($"Cannot start camera path: Need at least 3 nodes, but only {nodeCount} node(s) exist. Please add more nodes to create a path.");
                 throw new ArgumentException("Catmull Rom Error: Too few spline points!");
             }
             else {

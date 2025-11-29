@@ -114,7 +114,7 @@ namespace UnityExplorer.UI.Panels
 
         static List<DisableTarget> componentsToDisable = new();
 
-        public static bool supportedInput => InputManager.CurrentType == InputType.Legacy;
+        public static bool supportedInput => InputManager.CurrentType == InputType.Legacy || InputManager.CurrentType == InputType.InputSystem;
 
         static InputFieldRef nearClipPlaneInput;
         static Slider nearClipPlaneSlider;
@@ -616,26 +616,41 @@ namespace UnityExplorer.UI.Panels
             }
             
 
-            AddSpacer(5);
+            GameObject movespeedRow = AddInputField("MoveSpeed", "Move Speed:", "Default: 1", out moveSpeedInput, MoveSpeedInput_OnEndEdit, 85, 25);
+            moveSpeedInput.Text = desiredMoveSpeed.ToString();
 
-            GameObject posRow = AddInputField("Position", "Freecam Pos:", "eg. 0 0 0", out positionInput, PositionInput_OnEndEdit);
+            AddInputField("Position", "Freecam Pos:", "eg. 0 0 0", out positionInput, PositionInput_OnEndEdit, 100, 175, movespeedRow);
 
-            ButtonRef resetPosButton = UIFactory.CreateButton(posRow, "ResetButton", "Reset");
+            ButtonRef resetPosButton = UIFactory.CreateButton(movespeedRow, "ResetButton", "Reset");
             UIFactory.SetLayoutElement(resetPosButton.GameObject, minWidth: 70, minHeight: 25);
             resetPosButton.OnClick += OnResetPosButtonClicked;
 
-            AddSpacer(5);
+            Text componentsToDisableLabel = UIFactory.CreateLabel(ContentRoot, $"ComponentsToDisable_Label", "Disable Components/GameObjects:");
+            UIFactory.SetLayoutElement(componentsToDisableLabel.gameObject, minWidth: 250, minHeight: 25);
 
-            AddInputField("MoveSpeed", "Move Speed:", "Default: 1", out moveSpeedInput, MoveSpeedInput_OnEndEdit);
-            moveSpeedInput.Text = desiredMoveSpeed.ToString();
-
-            AddSpacer(5);
-
-            AddInputField("ComponentsToDisable", "Disable Components/GameObjects:", "CinemachineBrain", out componentsToDisableInput, ComponentsToDisableInput_OnEndEdit, 250);
+            componentsToDisableInput = UIFactory.CreateInputField(ContentRoot, $"componentsToDisable_Input", "CinemachineBrain");
+            UIFactory.SetLayoutElement(componentsToDisableInput.GameObject, minWidth: 50, minHeight: 25, flexibleWidth: 9999);
+            componentsToDisableInput.Component.GetOnEndEdit().AddListener(ComponentsToDisableInput_OnEndEdit);
             componentsToDisableInput.Text = ConfigManager.Custom_Components_To_Disable.Value;
             stringComponentsToDisable = ConfigManager.Custom_Components_To_Disable.Value.Split(',').Select(c => c.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
 
-            AddSpacer(5);
+            GameObject controllerRow = UIFactory.CreateHorizontalGroup(ContentRoot, "ControllerRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
+
+            Text ControllerLabel = UIFactory.CreateLabel(controllerRow, "Controller_label", " Controller:");
+            UIFactory.SetLayoutElement(ControllerLabel.gameObject, minWidth: 75, minHeight: 25);
+
+            if (InputManager.CurrentType == InputType.InputSystem)
+            {
+                GameObject controllerDropdownObj = UIFactory.CreateDropdown(controllerRow, "Controller_Dropdown", out Dropdown controllerDropdown, null, 14, (idx) => {
+                    IGamepadInputInterceptor.SetTargetGamepad(idx);
+                });
+                UIFactory.SetLayoutElement(controllerDropdownObj, minHeight: 25, minWidth: 125);
+                // Maybe we can dynamically show the number of connected gamepads in the future
+                for (int i = 0; i < 4; i++)
+                {
+                    controllerDropdown.options.Add(new Dropdown.OptionData($"Gamepad {i + 1}"));
+                }
+            }
 
             GameObject togglesRow = UIFactory.CreateHorizontalGroup(ContentRoot, "TogglesRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
 
@@ -773,21 +788,21 @@ namespace UnityExplorer.UI.Panels
             UIFactory.SetLayoutElement(obj, minHeight: height, flexibleHeight: 0);
         }
 
-        GameObject AddInputField(string name, string labelText, string placeHolder, out InputFieldRef inputField, Action<string> onInputEndEdit, int minTextWidth = 100)
+        GameObject AddInputField(string name, string labelText, string placeHolder, out InputFieldRef inputField, Action<string> onInputEndEdit, int minTextWidth = 100, int minInputWidth = 150, GameObject parent = null)
         {
-            GameObject row = UIFactory.CreateHorizontalGroup(ContentRoot, $"{name}_Group", false, false, true, true, 3, default, new(1, 1, 1, 0));
+            GameObject row = parent != null ? parent : UIFactory.CreateHorizontalGroup(ContentRoot, $"{name}_Group", false, false, true, true, 3, default, new(1, 1, 1, 0));
 
             Text posLabel = UIFactory.CreateLabel(row, $"{name}_Label", labelText);
             UIFactory.SetLayoutElement(posLabel.gameObject, minWidth: minTextWidth, minHeight: 25);
 
             inputField = UIFactory.CreateInputField(row, $"{name}_Input", placeHolder);
-            UIFactory.SetLayoutElement(inputField.GameObject, minWidth: 50, minHeight: 25, flexibleWidth: 9999);
+            UIFactory.SetLayoutElement(inputField.GameObject, minWidth: minInputWidth, minHeight: 25, flexibleWidth: 9999);
             inputField.Component.GetOnEndEdit().AddListener(onInputEndEdit);
 
             return row;
         }
 
-        public static void StartStopButton_OnClick()
+        public static void ToggleFreecam()
         {
             EventSystemHelper.SetSelectedGameObject(null);
 
@@ -797,6 +812,11 @@ namespace UnityExplorer.UI.Panels
                 BeginFreecam();
 
             SetToggleButtonState();
+        }
+
+        public static void StartStopButton_OnClick()
+        {
+            ToggleFreecam();
         }
 
         public static void FollowObjectAction(GameObject obj){
@@ -1195,6 +1215,7 @@ namespace UnityExplorer.UI.Panels
         private Action onBeforeRenderAction;
         private Vector3 cachedPosition;
         private Quaternion cachedRotation;
+        private CamPaths cachedCamPathsPanel;
 
         internal void Update()
         {
@@ -1205,6 +1226,10 @@ namespace UnityExplorer.UI.Panels
                     FreeCamPanel.EndFreecam();
                     return;
                 }
+
+                if (cachedCamPathsPanel == null)
+                    cachedCamPathsPanel = UIManager.GetPanel<CamPaths>(UIManager.Panels.CamPaths);
+
                 Transform movingTransform = FreeCamPanel.GetFreecam().transform;
 
                 if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && FreeCamPanel.connector?.IsActive != true && !IsInputFieldInFocus()) {
@@ -1309,12 +1334,37 @@ namespace UnityExplorer.UI.Panels
             FreeCamPanel.currentUserCameraPosition = transform.position;
             FreeCamPanel.currentUserCameraRotation = transform.rotation;
 
+            var leftStickX = IGamepadInputInterceptor.GetAxisValue("/gamepad/leftstick/x");
+            var leftStickY = IGamepadInputInterceptor.GetAxisValue("/gamepad/leftstick/y");
+            var rightStickX = IGamepadInputInterceptor.GetAxisValue("/gamepad/rightstick/x");
+            var rightStickY = IGamepadInputInterceptor.GetAxisValue("/gamepad/rightstick/y");
+            float leftTrigger = IGamepadInputInterceptor.GetAxisValue("/gamepad/lefttrigger");
+            float rightTrigger = IGamepadInputInterceptor.GetAxisValue("/gamepad/righttrigger");
+            bool yButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonnorth");
+            bool xButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonwest");
+            bool bButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttoneast");
+            bool dpadUpPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/up");
+            bool dpadDownPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/down");
+            bool dpadLeftPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/left");
+            bool dpadRightPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/right");
+
+            bool leftStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/leftstickpress");
+            bool rightStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/rightstickpress");
+
+            bool aButtonPressedThisFrame = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/buttonsouth");
+            bool leftShoulderPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/leftshoulder");
+            bool rightShoulderPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/rightshoulder");
+
+            bool startButtonPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/start");
+            bool selectButtonPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/select");
+
+
             float moveSpeed = FreeCamPanel.desiredMoveSpeed * 0.01665f; //"0.01665f" (60fps) in place of Time.DeltaTime. DeltaTime causes issues when game is paused.
             float speedModifier = 1;
-            if (IInputManager.GetKey(ConfigManager.Speed_Up_Movement.Value))
+            if (IInputManager.GetKey(ConfigManager.Speed_Up_Movement.Value) || yButtonPressed)
                 speedModifier = 10f;
 
-            if (IInputManager.GetKey(ConfigManager.Speed_Down_Movement.Value))
+            if (IInputManager.GetKey(ConfigManager.Speed_Down_Movement.Value) || xButtonPressed)
                 speedModifier = 0.1f;
 
             moveSpeed *= speedModifier;
@@ -1337,6 +1387,22 @@ namespace UnityExplorer.UI.Panels
             if (IInputManager.GetKey(ConfigManager.Down.Value))
                 transform.position += transform.up * -1 * moveSpeed;
 
+            if (leftStickX != 0 || leftStickY != 0)
+            {
+                transform.position += transform.right * leftStickX * moveSpeed;
+                transform.position += transform.forward * leftStickY * moveSpeed;
+            }
+
+            if (leftTrigger > 0)
+            {
+                transform.position += transform.up * leftTrigger * moveSpeed;
+            }
+
+            if (rightTrigger > 0)
+            {
+                transform.position += transform.up * -rightTrigger * moveSpeed;
+            }
+
             // 90 degrees tilt when pressing the speed down hotkey
             if (IInputManager.GetKey(ConfigManager.Speed_Down_Movement.Value))
             {
@@ -1349,15 +1415,15 @@ namespace UnityExplorer.UI.Panels
             }
             else
             {
-                if (IInputManager.GetKey(ConfigManager.Tilt_Left.Value)) {
+                if (IInputManager.GetKey(ConfigManager.Tilt_Left.Value) || dpadLeftPressed) {
                     transform.Rotate(0, 0, moveSpeed * 10, Space.Self);
                 }
-                else if (IInputManager.GetKey(ConfigManager.Tilt_Right.Value)) {
+                else if (IInputManager.GetKey(ConfigManager.Tilt_Right.Value) || dpadRightPressed) {
                     transform.Rotate(0, 0, - moveSpeed * 10, Space.Self);
                 }
             }
 
-            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value)){
+            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value) || (leftStickButton && bButtonPressed)){
                 // Extract the forward direction of the original quaternion
                 Vector3 forwardDirection = transform.rotation * Vector3.forward;
                 // Reset the tilt by creating a new quaternion with no tilt
@@ -1370,8 +1436,11 @@ namespace UnityExplorer.UI.Panels
             {
                 Vector3 mouseDelta = IInputManager.MousePosition - FreeCamPanel.previousMousePosition;
                 
-                float newRotationX = transform.localEulerAngles.y + mouseDelta.x * 0.3f;
-                float newRotationY = transform.localEulerAngles.x - mouseDelta.y * 0.3f;
+                // Scale rotation speed based on FOV, 60 as a baseline
+                float fovMultiplier = FreeCamPanel.GetFreecam().fieldOfView / 60.0f;
+                float rotationSensitivity = 0.3f * fovMultiplier;
+                float newRotationX = transform.localEulerAngles.y + mouseDelta.x * rotationSensitivity;
+                float newRotationY = transform.localEulerAngles.x - mouseDelta.y * rotationSensitivity;
 
                 // Block the camera rotation to not go further than looking directly up or down.
                 // We give a little extra to the [0, 90] rotation segment to not get the camera rotation stuck.
@@ -1396,18 +1465,84 @@ namespace UnityExplorer.UI.Panels
                 transform.rotation = pitchRotation * yawRotation * transform.rotation;*/
             }
 
-            if (IInputManager.GetKey(ConfigManager.Decrease_FOV.Value))
+            if (rightStickX != 0 || rightStickY != 0)
             {
-                FreeCamPanel.GetFreecam().fieldOfView -= moveSpeed; 
+                // Scale rotation speed based on FOV, 60 as a baseline
+                float fovMultiplier = FreeCamPanel.GetFreecam().fieldOfView / 60.0f;
+                float rotationSpeed = moveSpeed * 30 * fovMultiplier;
+                float newRotationX = transform.localEulerAngles.y + rightStickX * rotationSpeed;
+                float newRotationY = transform.localEulerAngles.x - rightStickY * rotationSpeed;
+
+                // Block the camera rotation to not go further than looking directly up or down.
+                newRotationY = newRotationY > 180f ? Mathf.Clamp(newRotationY, 270f, 360f) : Mathf.Clamp(newRotationY, -1f, 90.0f);
+
+                transform.localEulerAngles = new Vector3(newRotationY, newRotationX, transform.localEulerAngles.z);
             }
 
-            if (IInputManager.GetKey(ConfigManager.Increase_FOV.Value))
+            if (IInputManager.GetKey(ConfigManager.Decrease_FOV.Value) || dpadUpPressed)
             {
-                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed; 
+                FreeCamPanel.GetFreecam().fieldOfView = Mathf.Max(FreeCamPanel.GetFreecam().fieldOfView - moveSpeed * 3, 0.001f);
             }
 
-            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value)){
+            if (IInputManager.GetKey(ConfigManager.Increase_FOV.Value) || dpadDownPressed)
+            {
+                FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 3; 
+            }
+
+            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value) || (bButtonPressed && !leftStickButton)){
                 FreeCamPanel.GetFreecam().fieldOfView = FreeCamPanel.currentCameraType == FreeCamPanel.FreeCameraType.New ? 60 : FreeCamPanel.originalCameraFOV;
+            }
+
+            // Time scale gamepad controls
+            if (xButtonPressed)
+            {
+                if (leftShoulderPressed)
+                {
+                    UIManager.GetTimeScaleWidget().DecreaseTimeScale();
+                }
+                else if (rightShoulderPressed)
+                {
+                    UIManager.GetTimeScaleWidget().IncreaseTimeScale();
+                }
+            }
+
+            // Camera path gamepad controls
+            if (cachedCamPathsPanel != null)
+            {
+                if (aButtonPressedThisFrame)
+                {
+                    cachedCamPathsPanel.AddNode();
+                }
+
+                if (leftShoulderPressed)
+                {
+                    cachedCamPathsPanel.NavigateToPreviousNode();
+                }
+
+                if (rightShoulderPressed)
+                {
+                    cachedCamPathsPanel.NavigateToNextNode();
+                }
+                
+                if (startButtonPressed)
+                {
+                    if (FreeCamPanel.cameraPathMover.playingPath)
+                    {
+                        cachedCamPathsPanel.StopPath();
+                    }
+                    else
+                    {
+                        cachedCamPathsPanel.StartPath();
+                    }
+                }
+
+                if (selectButtonPressed)
+                {
+                    if (FreeCamPanel.cameraPathMover.playingPath)
+                    {
+                        cachedCamPathsPanel.TogglePause();
+                    }
+                }
             }
 
             FreeCamPanel.previousMousePosition = IInputManager.MousePosition;

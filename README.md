@@ -100,27 +100,38 @@ I wrote a [guide](https://framedsc.com/GeneralGuides/cinematic-unity-explorer.ht
 
 The table below describes all of the relevant default hotkeys. You can edit them to your liking by going to the Options panel, changing the hotkeys you want, and saving the settings.
 
-Feature | Key
--|-
-Freecam | `Insert`
-Move the camera forward/left/right/backward | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`RightArrow`/`DownArrow`
-Move the camera upwards | `Space`
-Move the camera downwards | `LeftControl`
-Speed up movement | `LeftShift`
-Speed down movement | `LeftAlt`
-Change freecam orientation | Right mouse click
-Tilt left | `Numpad 1`
-Tilt right | `Numpad 3`
-Reset tilt | `Numpad 2`
-Increase FOV | `Numpad +`
-Decrease FOV | `Numpad -`
-Reset FOV | `Numpad *`
-Pause | `PageUp`
-Block Freecam movement and rotation | `Home`
-Block games input | `Numpad .`
-Frameskip | `PageDown`
-HUD Toggle | `Delete`
-Freeze NPC animations | `Numpad 0`
+Feature | Keyboard | Gamepad
+-|-|-
+Freecam toggle | `Insert` | `R3 + X`
+Move the camera forward/left/backward/right | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`DownArrow`/`RightArrow`/ | Left stick
+Move the camera upwards | `Space` | `LT`
+Move the camera downwards | `LeftControl` | `RT`
+Speed up movement | `LeftShift` | `Y`
+Speed down movement | `LeftAlt` | `X`
+Change freecam orientation | Right mouse click | Right stick
+Tilt left | `Numpad 1` | Dpad left
+Tilt right | `Numpad 3` | Dpad right
+Reset tilt | `Numpad 2` | `A`
+Decrease FOV | `Numpad -` | Dpad up
+Increase FOV | `Numpad +` | Dpad down
+Reset FOV | `Numpad *` | `B`
+Pause | `PageUp` |
+Block Freecam movement and rotation | `Home` |
+Block games input | `Numpad .` |
+Frameskip | `PageDown` |
+HUD Toggle | `Delete` |
+Freeze NPC animations | `Numpad 0` |
+Time scale override toggle | | `L3 + X`
+Decrease time scale | | `X + L1`
+Increase time scale | | `X + R1`
+Camera path: Add node | | `A`
+Camera path: Navigate to previous node | | `L1`
+Camera path: Navigate to next node | | `R1`
+Camera path: Start/stop playback | | `START`
+Camera path: Pause/unpause playback | | `SELECT`
+
+> [!NOTE]  
+> Gamepad is only compatible if the game is using [Unity Input System](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html).
 
 # Features
 
@@ -152,8 +163,8 @@ By default the camera only follows the object's position, but you can also make 
 
 As a side note, you can also "look at" a specific object in the world to force the camera to look directly toward it no matter the camera movement.
 
-### Game input block for Unity's legacy system
-Added game input block for Unity's legacy system. You can now block (or unblock) the game's input when using the freecam, as long as the game is using the Unity Legacy Input system. If the game uses a custom solution or the latest Unity system then this won't work. Implementing this for Unity's new system is in the backlog, so if you find a game using it (should say "Initialized new InputSystem support." on the logs) then please let me know so I can implement it using that game!
+### Game input block for Unity's Legacy and Input System package
+Added game input block for Unity's Legacy system and Unity Input System package. You can now block (or unblock) the game's input when using the freecam, as long as the game is using either of the mentioned systems. If the game uses a custom solution (or the actions engine system, as far as I understand), then this won't work.
 
 ## Lights manager
 It allows you to spawn spotlights and pointlights, as well as toggle the game's original lights to allow you to relight the scene however you want (a task that is pretty common for screenshots and lighting artists). Please note that this only turns off scene lights and won't turn off ambient light or lights created by emissive materials, effects, or shaders.

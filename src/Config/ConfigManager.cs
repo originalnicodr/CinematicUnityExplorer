@@ -312,7 +312,7 @@ namespace UnityExplorer.Config
 
             Default_Freecam = new("Default Freecam mode",
                 "Default type of freecam selected on startup (gets automatically updated with the last type of camera used).",
-                FreeCamPanel.FreeCameraType.New);
+                FreeCamPanel.FreeCameraType.ForcedMatrix);
 
             Custom_Components_To_Disable = new("Custom components to disable",
                 "List of custom components to disable when enabling the freecam (gets automatically updated when editing it from the freecam panel).",

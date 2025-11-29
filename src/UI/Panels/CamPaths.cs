@@ -43,6 +43,7 @@ namespace UnityExplorer.UI.Panels
 		public List<CatmullRom.CatmullRomPoint> controlPoints = new List<CatmullRom.CatmullRomPoint>();
         bool closedLoop;
         float time = 10;
+        public int currentSelectedNodeIndex = -1;
 
         public GameObject followObject;
 
@@ -99,6 +100,8 @@ namespace UnityExplorer.UI.Panels
             cell.point = point;
             cell.index = index;
             cell.indexLabel.text = $"{index}";
+
+            cell.indexLabel.color = (index == currentSelectedNodeIndex) ? Color.green : Color.white;
         }
 
         // ~~~~~~~~ UI construction / callbacks ~~~~~~~~
@@ -122,10 +125,10 @@ namespace UnityExplorer.UI.Panels
             stopButton.ButtonText.fontSize = 20;
             stopButton.OnClick += Stop_OnClick;
 
-            ButtonRef AddNode = UIFactory.CreateButton(horiGroup, "AddCamNode", "+");
-            UIFactory.SetLayoutElement(AddNode.GameObject, minWidth: 50, minHeight: 25);
-            AddNode.ButtonText.fontSize = 20;
-            AddNode.OnClick += AddNode_OnClick;
+            ButtonRef AddNodeButton = UIFactory.CreateButton(horiGroup, "AddCamNode", "+");
+            UIFactory.SetLayoutElement(AddNodeButton.GameObject, minWidth: 50, minHeight: 25);
+            AddNodeButton.ButtonText.fontSize = 20;
+            AddNodeButton.OnClick += AddNode;
 
             ButtonRef DeletePath = UIFactory.CreateButton(horiGroup, "DeletePath", "Clear");
             UIFactory.SetLayoutElement(DeletePath.GameObject, minWidth: 70, minHeight: 25);
@@ -337,20 +340,22 @@ namespace UnityExplorer.UI.Panels
 
         void StartButton_OnClick()
         {
+            StartPath();
+        }
+
+        public void StartPath(){
             if (waitBeforePlay) {
                 if (startTimer.Enabled){
                     startTimer.Stop();
                 }
 
                 startTimer.Enabled = true;
-            } else {
-                StartPath();
+                return;
             }
 
             EventSystemHelper.SetSelectedGameObject(null);
-        }
 
-        void StartPath(){
+
             if (GetCameraPathsManager()){
                 UpdateCatmullRomMoverData();
                 GetCameraPathsManager().StartPath();
@@ -363,7 +368,7 @@ namespace UnityExplorer.UI.Panels
             }
         }
 
-        void TogglePause_OnClick(){
+        public void TogglePause(){
             if(GetCameraPathsManager()){
                 GetCameraPathsManager().TogglePause();
                 if (visualizePathToggle.isOn && GetCameraPathsManager().IsPaused()) visualizePathToggle.isOn = false;
@@ -372,7 +377,11 @@ namespace UnityExplorer.UI.Panels
             EventSystemHelper.SetSelectedGameObject(null);
         }
 
-        void Stop_OnClick(){
+        void TogglePause_OnClick(){
+            TogglePause();
+        }
+
+        public void StopPath(){
             if (GetCameraPathsManager()){
                 GetCameraPathsManager().Stop();
             }
@@ -380,7 +389,11 @@ namespace UnityExplorer.UI.Panels
             EventSystemHelper.SetSelectedGameObject(null);
         }
 
-        void AddNode_OnClick(){
+        void Stop_OnClick(){
+            StopPath();
+        }
+
+        public void AddNode(){
             EventSystemHelper.SetSelectedGameObject(null);
 
             CatmullRom.CatmullRomPoint point = new CatmullRom.CatmullRomPoint(
@@ -390,6 +403,7 @@ namespace UnityExplorer.UI.Panels
             );
 
             controlPoints.Add(point);
+            currentSelectedNodeIndex = controlPoints.Count - 1;
             nodesScrollPool.Refresh(true, false);
             MaybeRedrawPath();
         }
@@ -528,6 +542,56 @@ namespace UnityExplorer.UI.Panels
             File.WriteAllText($"{camPathsFolderPath}\\{filename}.cuepath", serializedData);
         }
 
+        void NavigateToNode(int nodeIndex)
+        {
+            if (nodeIndex < 0 || nodeIndex >= controlPoints.Count)
+                return;
+
+            currentSelectedNodeIndex = nodeIndex;
+            CatmullRom.CatmullRomPoint point = controlPoints[nodeIndex];
+            FreeCamPanel.SetCameraPosition(point.position);
+            FreeCamPanel.SetCameraRotation(point.rotation);
+            FreeCamPanel.SetFOV(point.fov);
+            nodesScrollPool.Refresh(true, false);
+        }
+
+        public void NavigateToNextNode()
+        {
+            if (controlPoints.Count == 0)
+                return;
+
+            int nextIndex = (currentSelectedNodeIndex + 1) % controlPoints.Count;
+            NavigateToNode(nextIndex);
+        }
+
+        public void NavigateToPreviousNode()
+        {
+            if (controlPoints.Count == 0)
+                return;
+
+            int prevIndex = currentSelectedNodeIndex - 1;
+            if (prevIndex < 0)
+                prevIndex = controlPoints.Count - 1;
+            NavigateToNode(prevIndex);
+        }
+
+        public void OnNodeDeleted(int deletedIndex)
+        {
+            // If the current selected index is out of bounds, adjust it
+            if (currentSelectedNodeIndex >= controlPoints.Count)
+            {
+                currentSelectedNodeIndex = controlPoints.Count - 1;
+            }
+             // If we deleted the selected node or a node before it, adjust the index
+            else if (deletedIndex <= currentSelectedNodeIndex && currentSelectedNodeIndex > 0)
+            {
+                currentSelectedNodeIndex--;
+            }
+
+            if (controlPoints.Count == 0)
+                currentSelectedNodeIndex = -1;
+        }
+
         private void LoadPath(){
             string filename = saveLoadInputField.Component.text;
             if (filename.EndsWith(".cuepath") || filename.EndsWith(".CUEPATH")) filename = filename.Substring(filename.Length-7);
@@ -563,12 +627,12 @@ namespace UnityExplorer.UI.Panels
                 
                 // We enable the freecam so we can use it to spawn the camera path relative to it
                 if (!FreeCamPanel.inFreeCamMode) {
-                    FreeCamPanel.StartStopButton_OnClick();
+                    FreeCamPanel.ToggleFreecam();
                 }
 
                 controlPoints.Clear();
                 // The first point will be the camera position, and we adapt the following points from there
-                AddNode_OnClick();
+                AddNode();
 
                 CatmullRom.CatmullRomPoint startingPoint = controlPoints.ElementAt(0);
                 CatmullRom.CatmullRomPoint originalStartingPoint = deserializedObj.points.ElementAt(0);
