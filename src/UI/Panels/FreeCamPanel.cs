@@ -1436,8 +1436,11 @@ namespace UnityExplorer.UI.Panels
             {
                 Vector3 mouseDelta = IInputManager.MousePosition - FreeCamPanel.previousMousePosition;
                 
-                float newRotationX = transform.localEulerAngles.y + mouseDelta.x * 0.3f;
-                float newRotationY = transform.localEulerAngles.x - mouseDelta.y * 0.3f;
+                // Scale rotation speed based on FOV, 60 as a baseline
+                float fovMultiplier = FreeCamPanel.GetFreecam().fieldOfView / 60.0f;
+                float rotationSensitivity = 0.3f * fovMultiplier;
+                float newRotationX = transform.localEulerAngles.y + mouseDelta.x * rotationSensitivity;
+                float newRotationY = transform.localEulerAngles.x - mouseDelta.y * rotationSensitivity;
 
                 // Block the camera rotation to not go further than looking directly up or down.
                 // We give a little extra to the [0, 90] rotation segment to not get the camera rotation stuck.
@@ -1464,7 +1467,9 @@ namespace UnityExplorer.UI.Panels
 
             if (rightStickX != 0 || rightStickY != 0)
             {
-                float rotationSpeed = moveSpeed * 30;
+                // Scale rotation speed based on FOV, 60 as a baseline
+                float fovMultiplier = FreeCamPanel.GetFreecam().fieldOfView / 60.0f;
+                float rotationSpeed = moveSpeed * 30 * fovMultiplier;
                 float newRotationX = transform.localEulerAngles.y + rightStickX * rotationSpeed;
                 float newRotationY = transform.localEulerAngles.x - rightStickY * rotationSpeed;
 
