@@ -639,14 +639,17 @@ namespace UnityExplorer.UI.Panels
             Text ControllerLabel = UIFactory.CreateLabel(controllerRow, "Controller_label", " Controller:");
             UIFactory.SetLayoutElement(ControllerLabel.gameObject, minWidth: 75, minHeight: 25);
 
-            GameObject controllerDropdownObj = UIFactory.CreateDropdown(controllerRow, "Controller_Dropdown", out Dropdown controllerDropdown, null, 14, (idx) => {
-                IGamepadInputInterceptor.SetTargetGamepad(idx);
-            });
-            UIFactory.SetLayoutElement(controllerDropdownObj, minHeight: 25, minWidth: 125);
-            // Maybe we can dynamically show the number of connected gamepads in the future
-            for (int i = 0; i < 4; i++)
+            if (InputManager.CurrentType == InputType.InputSystem)
             {
-                controllerDropdown.options.Add(new Dropdown.OptionData($"Gamepad {i + 1}"));
+                GameObject controllerDropdownObj = UIFactory.CreateDropdown(controllerRow, "Controller_Dropdown", out Dropdown controllerDropdown, null, 14, (idx) => {
+                    IGamepadInputInterceptor.SetTargetGamepad(idx);
+                });
+                UIFactory.SetLayoutElement(controllerDropdownObj, minHeight: 25, minWidth: 125);
+                // Maybe we can dynamically show the number of connected gamepads in the future
+                for (int i = 0; i < 4; i++)
+                {
+                    controllerDropdown.options.Add(new Dropdown.OptionData($"Gamepad {i + 1}"));
+                }
             }
 
             GameObject togglesRow = UIFactory.CreateHorizontalGroup(ContentRoot, "TogglesRow", false, false, true, true, 3, default, new(1, 1, 1, 0));
