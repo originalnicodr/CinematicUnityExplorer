@@ -131,7 +131,7 @@ namespace UnityExplorer
 
             if (IInputManager.GetKeyDown(ConfigManager.Freecam_Toggle.Value))
             {
-                FreeCamPanel.StartStopButton_OnClick();
+                FreeCamPanel.ToggleFreecam();
             }
 
             if (IInputManager.GetKeyDown(ConfigManager.Block_Freecam_Movement.Value))
@@ -147,6 +147,30 @@ namespace UnityExplorer
             if (FreeCamPanel.supportedInput && IInputManager.GetKeyDown(ConfigManager.Toggle_Block_Games_Input.Value))
             {
                 FreeCamPanel.blockGamesInputOnFreecamToggle.isOn = !FreeCamPanel.blockGamesInputOnFreecamToggle.isOn;
+            }
+
+            // Gamepad controls
+            bool xButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonwest");
+            bool leftStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/leftstickpress");
+            bool rightStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/rightstickpress");
+
+            // L3 + X: Toggle time scale override
+            if (xButtonPressed && leftStickButton)
+            {
+                if (IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/buttonwest") ||
+                    IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/leftstickpress"))
+                {
+                    UIManager.GetTimeScaleWidget().ToggleOverride();
+                }
+            }
+            // R3 + X: Toggle freecam
+            else if (xButtonPressed && rightStickButton)
+            {
+                if (IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/buttonwest") ||
+                    IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/rightstickpress"))
+                {
+                    FreeCamPanel.ToggleFreecam();
+                }
             }
         }
 

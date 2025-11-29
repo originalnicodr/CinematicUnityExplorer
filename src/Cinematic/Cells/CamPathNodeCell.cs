@@ -87,7 +87,9 @@ namespace UnityExplorer.UI.Panels
             ButtonRef destroyButton = UIFactory.CreateButton(UIRoot, "Delete", "Delete");
             UIFactory.SetLayoutElement(destroyButton.GameObject, minWidth: 30, minHeight: 25, flexibleWidth: 9999);
             destroyButton.OnClick += () => {
+                int deletedIndex = GetCamPathsPanel().controlPoints.IndexOf(point);
                 GetCamPathsPanel().controlPoints.Remove(point);
+                GetCamPathsPanel().OnNodeDeleted(deletedIndex);
                 GetCamPathsPanel().nodesScrollPool.Refresh(true, false);
                 GetCamPathsPanel().MaybeRedrawPath();
             };

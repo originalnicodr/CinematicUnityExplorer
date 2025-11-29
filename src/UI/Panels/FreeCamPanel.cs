@@ -802,7 +802,7 @@ namespace UnityExplorer.UI.Panels
             return row;
         }
 
-        public static void StartStopButton_OnClick()
+        public static void ToggleFreecam()
         {
             EventSystemHelper.SetSelectedGameObject(null);
 
@@ -812,6 +812,11 @@ namespace UnityExplorer.UI.Panels
                 BeginFreecam();
 
             SetToggleButtonState();
+        }
+
+        public static void StartStopButton_OnClick()
+        {
+            ToggleFreecam();
         }
 
         public static void FollowObjectAction(GameObject obj){
@@ -1210,6 +1215,7 @@ namespace UnityExplorer.UI.Panels
         private Action onBeforeRenderAction;
         private Vector3 cachedPosition;
         private Quaternion cachedRotation;
+        private CamPaths cachedCamPathsPanel;
 
         internal void Update()
         {
@@ -1220,6 +1226,10 @@ namespace UnityExplorer.UI.Panels
                     FreeCamPanel.EndFreecam();
                     return;
                 }
+
+                if (cachedCamPathsPanel == null)
+                    cachedCamPathsPanel = UIManager.GetPanel<CamPaths>(UIManager.Panels.CamPaths);
+
                 Transform movingTransform = FreeCamPanel.GetFreecam().transform;
 
                 if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && FreeCamPanel.connector?.IsActive != true && !IsInputFieldInFocus()) {
@@ -1332,12 +1342,22 @@ namespace UnityExplorer.UI.Panels
             float rightTrigger = IGamepadInputInterceptor.GetAxisValue("/gamepad/righttrigger");
             bool yButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonnorth");
             bool xButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonwest");
-            bool aButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttonsouth");
             bool bButtonPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/buttoneast");
             bool dpadUpPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/up");
             bool dpadDownPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/down");
             bool dpadLeftPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/left");
             bool dpadRightPressed = IGamepadInputInterceptor.IsButtonPressed("/gamepad/dpad/right");
+
+            bool leftStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/leftstickpress");
+            bool rightStickButton = IGamepadInputInterceptor.IsButtonPressed("/gamepad/rightstickpress");
+
+            bool aButtonPressedThisFrame = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/buttonsouth");
+            bool leftShoulderPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/leftshoulder");
+            bool rightShoulderPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/rightshoulder");
+
+            bool startButtonPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/start");
+            bool selectButtonPressed = IGamepadInputInterceptor.WasButtonPressedThisFrame("/gamepad/select");
+
 
             float moveSpeed = FreeCamPanel.desiredMoveSpeed * 0.01665f; //"0.01665f" (60fps) in place of Time.DeltaTime. DeltaTime causes issues when game is paused.
             float speedModifier = 1;
@@ -1403,7 +1423,7 @@ namespace UnityExplorer.UI.Panels
                 }
             }
 
-            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value) || aButtonPressed){
+            if (IInputManager.GetKey(ConfigManager.Tilt_Reset.Value) || (leftStickButton && bButtonPressed)){
                 // Extract the forward direction of the original quaternion
                 Vector3 forwardDirection = transform.rotation * Vector3.forward;
                 // Reset the tilt by creating a new quaternion with no tilt
@@ -1464,8 +1484,60 @@ namespace UnityExplorer.UI.Panels
                 FreeCamPanel.GetFreecam().fieldOfView += moveSpeed * 3; 
             }
 
-            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value) || bButtonPressed){
+            if (IInputManager.GetKey(ConfigManager.Reset_FOV.Value) || (bButtonPressed && !leftStickButton)){
                 FreeCamPanel.GetFreecam().fieldOfView = FreeCamPanel.currentCameraType == FreeCamPanel.FreeCameraType.New ? 60 : FreeCamPanel.originalCameraFOV;
+            }
+
+            // Time scale gamepad controls
+            if (xButtonPressed)
+            {
+                if (leftShoulderPressed)
+                {
+                    UIManager.GetTimeScaleWidget().DecreaseTimeScale();
+                }
+                else if (rightShoulderPressed)
+                {
+                    UIManager.GetTimeScaleWidget().IncreaseTimeScale();
+                }
+            }
+
+            // Camera path gamepad controls
+            if (cachedCamPathsPanel != null)
+            {
+                if (aButtonPressedThisFrame)
+                {
+                    cachedCamPathsPanel.AddNode();
+                }
+
+                if (leftShoulderPressed)
+                {
+                    cachedCamPathsPanel.NavigateToPreviousNode();
+                }
+
+                if (rightShoulderPressed)
+                {
+                    cachedCamPathsPanel.NavigateToNextNode();
+                }
+                
+                if (startButtonPressed)
+                {
+                    if (FreeCamPanel.cameraPathMover.playingPath)
+                    {
+                        cachedCamPathsPanel.StopPath();
+                    }
+                    else
+                    {
+                        cachedCamPathsPanel.StartPath();
+                    }
+                }
+
+                if (selectButtonPressed)
+                {
+                    if (FreeCamPanel.cameraPathMover.playingPath)
+                    {
+                        cachedCamPathsPanel.TogglePause();
+                    }
+                }
             }
 
             FreeCamPanel.previousMousePosition = IInputManager.MousePosition;

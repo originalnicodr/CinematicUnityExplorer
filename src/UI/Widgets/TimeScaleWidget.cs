@@ -68,6 +68,27 @@ namespace UnityExplorer.UI.Widgets
             settingTimeScale = false;
         }
 
+        public void IncreaseTimeScale()
+        {
+            float newValue = Mathf.Min(desiredTime + 0.1f, slider.maxValue);
+            slider.value = newValue;
+            if (overrideTimeScaleToggle.isOn)
+                SetTimeScale(newValue);
+        }
+
+        public void DecreaseTimeScale()
+        {
+            float newValue = Mathf.Max(desiredTime - 0.1f, slider.minValue);
+            slider.value = newValue;
+            if (overrideTimeScaleToggle.isOn)
+                SetTimeScale(newValue);
+        }
+
+        public void ToggleOverride()
+        {
+            overrideTimeScaleToggle.isOn = !overrideTimeScaleToggle.isOn;
+        }
+
         // UI event listeners
 
         void OnTimeInputEndEdit(string val)

@@ -102,7 +102,7 @@ The table below describes all of the relevant default hotkeys. You can edit them
 
 Feature | Keyboard | Gamepad
 -|-|-
-Freecam | `Insert` | 
+Freecam toggle | `Insert` | `R3 + X`
 Move the camera forward/left/backward/right | `W`/`A`/`S`/`D` - `UpArrow`/`LeftArrow`/`DownArrow`/`RightArrow`/ | Left stick
 Move the camera upwards | `Space` | `LT`
 Move the camera downwards | `LeftControl` | `RT`
@@ -115,12 +115,20 @@ Reset tilt | `Numpad 2` | `A`
 Decrease FOV | `Numpad -` | Dpad up
 Increase FOV | `Numpad +` | Dpad down
 Reset FOV | `Numpad *` | `B`
-Pause | `PageUp`
-Block Freecam movement and rotation | `Home`
-Block games input | `Numpad .`
-Frameskip | `PageDown`
-HUD Toggle | `Delete`
-Freeze NPC animations | `Numpad 0`
+Pause | `PageUp` |
+Block Freecam movement and rotation | `Home` |
+Block games input | `Numpad .` |
+Frameskip | `PageDown` |
+HUD Toggle | `Delete` |
+Freeze NPC animations | `Numpad 0` |
+Time scale override toggle | | `L3 + X`
+Decrease time scale | | `X + L1`
+Increase time scale | | `X + R1`
+Camera path: Add node | | `A`
+Camera path: Navigate to previous node | | `L1`
+Camera path: Navigate to next node | | `R1`
+Camera path: Start/stop playback | | `START`
+Camera path: Pause/unpause playback | | `SELECT`
 
 > [!NOTE]  
 > Gamepad is only compatible if the game is using [Unity Input System](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/index.html).
