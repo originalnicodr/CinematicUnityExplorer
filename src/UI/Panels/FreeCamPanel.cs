@@ -80,6 +80,7 @@ namespace UnityExplorer.UI.Panels
         public static Toggle followRotationToggle;
         static bool disabledCinemachine;
         static bool disabledOrthographic;
+        static bool disabledOcclusionCulling;
         static List<string> stringComponentsToDisable = new();
         
         private class DisableTarget
@@ -319,6 +320,7 @@ namespace UnityExplorer.UI.Panels
                         // so we will try to move the real camera as well.
                         MaybeToggleCinemachine(false);
                         MaybeToggleOrthographic(false);
+                        MaybeToggleOcclusionCulling(false);
                         ToggleCustomComponents(false);
 
                         cameraMatrixOverrider = new GameObject("CUE Camera").AddComponent<Camera>();
@@ -392,6 +394,7 @@ namespace UnityExplorer.UI.Panels
                 case FreeCameraType.ForcedMatrix:
                     MaybeToggleCinemachine(true);
                     MaybeToggleOrthographic(true);
+                    MaybeToggleOcclusionCulling(true);
                     ToggleCustomComponents(true);
                     MethodInfo resetCullingMatrixMethod = typeof(Camera).GetMethod("ResetCullingMatrix", new Type[] {});
                     resetCullingMatrixMethod.Invoke(ourCamera, null);
@@ -523,6 +526,22 @@ namespace UnityExplorer.UI.Panels
                     if (ourCamera.orthographic) {
                         disabledOrthographic = true;
                         ourCamera.orthographic = false;
+                    }
+                }
+            }
+        }
+
+        static void MaybeToggleOcclusionCulling(bool enable){
+            if (ourCamera) {
+                if (enable) {
+                    if (disabledOcclusionCulling) {
+                        ourCamera.useOcclusionCulling = true;
+                        disabledOcclusionCulling = false;
+                    }
+                } else {
+                    if (ourCamera.useOcclusionCulling) {
+                        disabledOcclusionCulling = true;
+                        ourCamera.useOcclusionCulling = false;
                     }
                 }
             }
@@ -1077,7 +1096,7 @@ namespace UnityExplorer.UI.Panels
             }
         }
 
-        static Behaviour GetComponentByName(GameObject obj, string componentsName)
+        public static Behaviour GetComponentByName(GameObject obj, string componentsName)
         {
             if (obj)
             {
@@ -1216,6 +1235,7 @@ namespace UnityExplorer.UI.Panels
         private Vector3 cachedPosition;
         private Quaternion cachedRotation;
         private CamPaths cachedCamPathsPanel;
+        private bool? hasHDRPComponent = null;
 
         internal void Update()
         {
@@ -1714,11 +1734,20 @@ namespace UnityExplorer.UI.Panels
         // HDRP matrix override ignores us moving the camera unfortunately, so we try to copy over the position of the camera matrix overrider.
         protected void UpdateRealCamera() {
             if (FreeCamPanel.cameraMatrixOverrider != null) {
-                cachedPosition = FreeCamPanel.ourCamera.transform.position;
-                FreeCamPanel.ourCamera.transform.position = FreeCamPanel.cameraMatrixOverrider.transform.position;
-                // We also try to update the rotation in case there are game shaders that use the real camera rotation
-                cachedRotation = FreeCamPanel.ourCamera.transform.rotation;
-                FreeCamPanel.ourCamera.transform.rotation = FreeCamPanel.cameraMatrixOverrider.transform.rotation;
+                if (!hasHDRPComponent.HasValue)
+                {
+                    var hdrpComponent = FreeCamPanel.GetComponentByName(FreeCamPanel.ourCamera.gameObject, "UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData");
+                    hasHDRPComponent = hdrpComponent != null;
+                }
+
+                if (hasHDRPComponent == true)
+                {
+                    cachedPosition = FreeCamPanel.ourCamera.transform.position;
+                    FreeCamPanel.ourCamera.transform.position = FreeCamPanel.cameraMatrixOverrider.transform.position;
+                    // We also try to update the rotation in case there are game shaders that use the real camera rotation
+                    cachedRotation = FreeCamPanel.ourCamera.transform.rotation;
+                    FreeCamPanel.ourCamera.transform.rotation = FreeCamPanel.cameraMatrixOverrider.transform.rotation;
+                }
             }
         }
 
