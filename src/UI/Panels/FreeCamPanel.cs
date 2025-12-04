@@ -1236,6 +1236,7 @@ namespace UnityExplorer.UI.Panels
         private Quaternion cachedRotation;
         private CamPaths cachedCamPathsPanel;
         private bool? hasHDRPComponent = null;
+        private float cachedAspectRatio = -1f;
 
         internal void Update()
         {
@@ -1283,6 +1284,11 @@ namespace UnityExplorer.UI.Panels
                 FreeCamPanel.connector?.ExecuteCameraCommand(FreeCamPanel.GetFreecam());
 
                 FreeCamPanel.UpdatePositionInput();
+                if (FreeCamPanel.cameraMatrixOverrider != null && Mathf.Abs(FreeCamPanel.ourCamera.aspect - cachedAspectRatio) > 0.001f)
+                {
+                    FreeCamPanel.cameraMatrixOverrider.ResetAspect();
+                    cachedAspectRatio = FreeCamPanel.ourCamera.aspect;
+                }
             }
         }
 
