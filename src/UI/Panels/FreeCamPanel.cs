@@ -350,18 +350,18 @@ namespace UnityExplorer.UI.Panels
             if (!cameraPathMover)
                 cameraPathMover = ourCamera.gameObject.AddComponent<CatmullRom.CatmullRomMover>();
 
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (ConfigManager.Reset_Camera_Transform.Value || lastScene != currentScene){
+                ResetCameraTransform();
+            }
+            lastScene = currentScene;
+
             GetFreecam().transform.position = (Vector3)currentUserCameraPosition;
             GetFreecam().transform.rotation = (Quaternion)currentUserCameraRotation;
             SetFOV(currentUserCameraFov);
 
             ourCamera.gameObject.SetActive(true);
             ourCamera.enabled = true;
-
-            string currentScene = SceneManager.GetActiveScene().name;
-            if (lastScene != currentScene || ConfigManager.Reset_Camera_Transform.Value){
-                OnResetPosButtonClicked();
-            }
-            lastScene = currentScene;
         }
 
         internal static void EndFreecam()
@@ -916,19 +916,25 @@ namespace UnityExplorer.UI.Panels
             BeginFreecam();
         }
 
-        static void OnResetPosButtonClicked()
+        static void ResetCameraTransform()
         {
             currentUserCameraPosition = originalCameraPosition;
             currentUserCameraRotation = originalCameraRotation;
+            currentUserCameraFov = originalCameraFOV;
 
-            if (inFreeCamMode && ourCamera)
-            {
-                SetCameraPosition((Vector3)currentUserCameraPosition, true);
-                SetCameraRotation((Quaternion)currentUserCameraRotation, true);
-                ourCamera.fieldOfView = originalCameraFOV;
-            }
+            SetCameraPosition((Vector3)currentUserCameraPosition, true);
+            SetCameraRotation((Quaternion)currentUserCameraRotation, true);
+            ourCamera.fieldOfView = originalCameraFOV;
 
             positionInput.Text = ParseUtility.ToStringForInput<Vector3>(originalCameraPosition);
+        }
+
+        static void OnResetPosButtonClicked()
+        {
+            if (inFreeCamMode && ourCamera)
+            {
+                ResetCameraTransform();
+            }
         }
 
         void PositionInput_OnEndEdit(string input)
