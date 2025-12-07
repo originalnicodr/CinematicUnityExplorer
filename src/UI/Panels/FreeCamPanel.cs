@@ -1232,11 +1232,15 @@ namespace UnityExplorer.UI.Panels
         public FreeCamBehaviour(IntPtr ptr) : base(ptr) { }
 #endif
         private Action onBeforeRenderAction;
-        private Vector3 cachedPosition;
-        private Quaternion cachedRotation;
         private CamPaths cachedCamPathsPanel;
         private bool? hasHDRPComponent = null;
         private float cachedAspectRatio = -1f;
+        
+        // Cached HDRP reflection objects
+        private Type cachedCameraPositionSettingsType = null;
+        private MethodInfo cachedApplySettingsMethod = null;
+        private FieldInfo cachedPositionField = null;
+        private FieldInfo cachedRotationField = null;
 
         internal void Update()
         {
@@ -1279,7 +1283,7 @@ namespace UnityExplorer.UI.Panels
                 }
 
                 UpdateRelativeMatrix();
-                UpdateRealCamera();
+                MaybeUpdateHDRPCameraPositionSettings();
 
                 FreeCamPanel.connector?.ExecuteCameraCommand(FreeCamPanel.GetFreecam());
 
@@ -1309,25 +1313,25 @@ namespace UnityExplorer.UI.Panels
         private void OnPreCull()
         {
             UpdateRelativeMatrix();
-            UpdateRealCamera();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
         private void OnPreRender()
         {
             UpdateRelativeMatrix();
-            UpdateRealCamera();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
         private void OnCameraPostRender()
         {
             UpdateRelativeMatrix();
-            //RestoreRealCameraTransform();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
         private void LateUpdate()
         {
             UpdateRelativeMatrix();
-            //RestoreRealCameraTransform();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
         internal void UpdateRelativeMatrix() {
@@ -1577,7 +1581,7 @@ namespace UnityExplorer.UI.Panels
         // The following code forces the freecamcam to update before rendering a frame
         protected virtual void Awake()
         {
-            onBeforeRenderAction = () => { UpdateRelativeMatrix(); UpdateRealCamera(); };
+            onBeforeRenderAction = () => { UpdateRelativeMatrix(); MaybeUpdateHDRPCameraPositionSettings();};
         }
 
         protected virtual void OnEnable()
@@ -1728,41 +1732,65 @@ namespace UnityExplorer.UI.Panels
         private void OnBeforeEvent(object arg1, Camera[] arg2)
         {
             UpdateRelativeMatrix();
-            UpdateRealCamera();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
         private void OnAfterEvent(object arg1, Camera[] arg2)
         {
             UpdateRelativeMatrix();
-            //RestoreRealCameraTransform();
+            MaybeUpdateHDRPCameraPositionSettings();
         }
 
-        // HDRP matrix override ignores us moving the camera unfortunately, so we try to copy over the position of the camera matrix overrider.
-        protected void UpdateRealCamera() {
-            if (FreeCamPanel.cameraMatrixOverrider != null) {
-                if (!hasHDRPComponent.HasValue)
+        internal void MaybeUpdateHDRPCameraPositionSettings()
+        {
+            if (!hasHDRPComponent.HasValue)
+            {
+                hasHDRPComponent = false;
+                
+                Type cameraSettingsUtilitiesType = ReflectionUtility.GetTypeByName("UnityEngine.Rendering.HighDefinition.CameraSettingsUtilities");
+                if (cameraSettingsUtilitiesType == null)
+                    return;
+                
+                cachedCameraPositionSettingsType = ReflectionUtility.GetTypeByName("UnityEngine.Rendering.HighDefinition.CameraPositionSettings");
+                if (cachedCameraPositionSettingsType == null)
+                    return;
+                
+                cachedApplySettingsMethod = cameraSettingsUtilitiesType.GetMethod("ApplySettings", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(Camera), cachedCameraPositionSettingsType }, null);
+                if (cachedApplySettingsMethod == null)
+                    return;
+                
+                cachedPositionField = cachedCameraPositionSettingsType.GetField("position", BindingFlags.Public | BindingFlags.Instance);
+                cachedRotationField = cachedCameraPositionSettingsType.GetField("rotation", BindingFlags.Public | BindingFlags.Instance);
+                
+                if (cachedPositionField != null && cachedRotationField != null)
                 {
-                    var hdrpComponent = FreeCamPanel.GetComponentByName(FreeCamPanel.ourCamera.gameObject, "UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData");
-                    hasHDRPComponent = hdrpComponent != null;
+                    hasHDRPComponent = true;
                 }
+            }
 
-                if (hasHDRPComponent == true)
-                {
-                    cachedPosition = FreeCamPanel.ourCamera.transform.position;
-                    FreeCamPanel.ourCamera.transform.position = FreeCamPanel.cameraMatrixOverrider.transform.position;
-                    // We also try to update the rotation in case there are game shaders that use the real camera rotation
-                    cachedRotation = FreeCamPanel.ourCamera.transform.rotation;
-                    FreeCamPanel.ourCamera.transform.rotation = FreeCamPanel.cameraMatrixOverrider.transform.rotation;
-                }
+            if (hasHDRPComponent == true)
+            {
+                UpdateHDRPCameraPositionSettings();
             }
         }
 
-        protected void RestoreRealCameraTransform() {
-            if (FreeCamPanel.cameraMatrixOverrider != null) {
-                FreeCamPanel.ourCamera.transform.position = cachedPosition;
-                FreeCamPanel.ourCamera.transform.rotation = cachedRotation;
+        // HDRP handles position and rotation internally, so we need to replace these within HDRP systems
+        internal void UpdateHDRPCameraPositionSettings()
+        {
+            try
+            {
+                object cameraPositionSettings = Activator.CreateInstance(cachedCameraPositionSettingsType);
+
+                cachedPositionField.SetValue(cameraPositionSettings, FreeCamPanel.cameraMatrixOverrider.transform.position);
+                cachedRotationField.SetValue(cameraPositionSettings, FreeCamPanel.cameraMatrixOverrider.transform.rotation);
+
+                cachedApplySettingsMethod.Invoke(null, new object[] { FreeCamPanel.ourCamera, cameraPositionSettings });
             }
-            UpdateRealCamera();
+            catch (Exception ex)
+            {
+                ExplorerCore.LogWarning($"Failed to apply HDRP camera position settings: {ex.Message}\n{ex.StackTrace}");
+                hasHDRPComponent = false;
+            }
         }
     }
 
