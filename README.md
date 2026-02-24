@@ -16,10 +16,13 @@
 <p align="center">
   ✨ Powered by <a href="https://github.com/yukieiji/UniverseLib">UniverseLib</a>
 </p>
+<p align="center">
+  🛠️ Need support? Join our <a href="discord.gg/FqTpKutNah">Discord server</a>!
+</p>
 
 # Releases  [![](https://img.shields.io/github/downloads/originalnicodr/CinematicUnityExplorer/total.svg)](../../releases)
 
-[![](https://img.shields.io/github/release/originalnicodr/CinematicUnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/actions/workflow/status/originalnicodr/CinematicUnityExplorer/dotnet.yml)](https://github.com/originalnicodr/CinematicUnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/CinematicUnityExplorer/latest/total.svg)](../../releases/latest)
+[![](https://img.shields.io/github/release/originalnicodr/CinematicUnityExplorer.svg?label=version)](../../releases/latest) [![](https://img.shields.io/github/actions/workflow/status/originalnicodr/CinematicUnityExplorer/dotnet.yml)](https://github.com/originalnicodr/CinematicUnityExplorer/actions) [![](https://img.shields.io/github/downloads/originalnicodr/CinematicUnityExplorer/latest/total.svg)](../../releases/latest) [![](https://dcbadge.limes.pink/api/server/https://discord.gg/FqTpKutNah?style=flat)](https://discord.gg/FqTpKutNah)
 
 <p align="center">
 <a href="https://www.youtube.com/watch?v=--8DOKWzGJ4" target="_blank">
