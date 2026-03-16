@@ -129,7 +129,7 @@ namespace UnityExplorer.UI
             if (!UIRoot)
                 return;
             // If we are doing a Mouse Inspect, we don't need to update anything else.
-            if (MouseInspector.Instance?.TryUpdate() ?? false)  //instance is sometimes null for some reason?
+            if (MouseInspector.Instance.TryUpdate())
                 return;
             // Update Notification modal
             Notification.Update();
