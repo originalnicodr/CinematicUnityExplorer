@@ -1,4 +1,5 @@
-﻿using UnityExplorer.UI.Panels;
+﻿using UnityEngine.SceneManagement;
+using UnityExplorer.UI.Panels;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 
@@ -12,7 +13,7 @@ namespace UnityExplorer.UI.Widgets
         string lastGoName;
         string lastPath;
         bool lastParentState;
-        int lastSceneHandle;
+        string lastSceneId;
         string lastTag;
         int lastLayer;
         int lastFlags;
@@ -40,7 +41,16 @@ namespace UnityExplorer.UI.Widgets
             this.Owner = owner;
             Create();
         }
+        private static string GetSceneId(Scene scene)
+        {
+            if (!scene.IsValid())
+                return "invalid";
 
+            if (!string.IsNullOrEmpty(scene.path))
+                return scene.path;
+
+            return scene.name;
+        }
         public void UpdateGameObjectInfo(bool firstUpdate, bool force)
         {
             if (firstUpdate)
@@ -92,9 +102,9 @@ namespace UnityExplorer.UI.Widgets
                 IsStaticToggle.Set(Target.isStatic, false);
             }
 
-            if (force || Target.scene.handle != lastSceneHandle)
+            if (force || GetSceneId(Target.scene) != lastSceneId) //scene.handle no longer exists in unity 6, had to replace it with something else.
             {
-                lastSceneHandle = Target.scene.handle;
+                lastSceneId = GetSceneId(Target.scene);
                 SceneButton.ButtonText.text = Target.scene.IsValid() ? Target.scene.name : "None (Asset/Resource)";
             }
 
