@@ -11,6 +11,42 @@ namespace CinematicUnityExplorer.Cinematic
     // StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
     using StepCommand = Mono.CSharp.Tuple<float, float>;
 
+    [StructLayout(LayoutKind.Sequential)]
+    struct Vec3
+    {
+        public float x, y, z;
+
+        public void FromVector3(Vector3 v)
+        {
+            this.x = v.x; this.y = v.y; this.z = v.z;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct Vec4
+    {
+        public float x, y, z, w;
+        public void FromQuaternion(Quaternion q) { this.x = q.x; this.y = q.y ; this.z = q.z; this.w = q.w; }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct CameraToolsData
+    {
+        public byte cameraEnabled;
+        public byte cameraMovementLocked;
+        public byte reserved1;
+        public byte reserved2;
+        public float fov;
+        public Vec3 coordinates;
+        public Vec4 lookQuaternion;
+        public Vec3 rotationMatrixUpVector;
+        public Vec3 rotationMatrixRightVector;
+        public Vec3 rotationMatrixForwardVector;
+        public float pitch;
+        public float yaw;
+        public float roll;
+    }
+
     internal static class NativeMethods
     {
         [DllImport("kernel32.dll")]
@@ -54,8 +90,37 @@ namespace CinematicUnityExplorer.Cinematic
         public void UpdateFreecamStatus(bool enabled)
         {
             if (CameraStatus == IntPtr.Zero) return;
-            
-            Marshal.WriteByte(CameraStatus, enabled ? (byte)0x1 : (byte)0x0);
+            unsafe
+            {
+                CameraToolsData* data= (CameraToolsData*)CameraStatus;
+                data->cameraEnabled = enabled ? (byte)1 : (byte) 0;
+            }
+        }
+
+        internal void UpdateCameraData(Camera cam)
+        {
+            if (CameraStatus == IntPtr.Zero) return;
+
+
+            Transform transform = cam.transform;
+            unsafe
+            {
+                CameraToolsData* data = (CameraToolsData*)CameraStatus;
+                data->fov = cam.fieldOfView;
+
+                data->coordinates.FromVector3(transform.position);
+
+                data->lookQuaternion.FromQuaternion(transform.rotation);
+
+                data->rotationMatrixRightVector.FromVector3(transform.right);
+                data->rotationMatrixUpVector.FromVector3(transform.up);
+                data->rotationMatrixForwardVector.FromVector3(transform.forward);
+
+                Vector3 rot = transform.eulerAngles;
+                data->pitch = rot.x * Mathf.Deg2Rad;
+                data->yaw = rot.y * Mathf.Deg2Rad;
+                data->roll = rot.z * Mathf.Deg2Rad;
+            }
         }
 
         public void ExecuteCameraCommand(Camera cam)

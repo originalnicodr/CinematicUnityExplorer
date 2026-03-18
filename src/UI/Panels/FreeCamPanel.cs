@@ -1263,6 +1263,9 @@ namespace UnityExplorer.UI.Panels
 
                 Transform movingTransform = FreeCamPanel.GetFreecam().transform;
 
+                // update camera data
+                FreeCamPanel.connector?.UpdateCameraData(FreeCamPanel.GetFreecam());
+
                 if (!FreeCamPanel.blockFreecamMovementToggle.isOn && !FreeCamPanel.cameraPathMover.playingPath && FreeCamPanel.connector?.IsActive != true && !IsInputFieldInFocus()) {
                     ProcessInput(movingTransform);
                 }
