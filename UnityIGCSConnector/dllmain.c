@@ -2,13 +2,14 @@
 #include <Windows.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <Psapi.h>
 
 #define EXPOSE __declspec(dllexport)
 
 // The function that will be the one called from the C# side, that will update the corresponding values.
 typedef void (*MoveCameraCallback)(float, float, float, int);
 
-typedef void (*SessionCallback)(void);
+typedef int (*SessionCallback)(void);
 
 typedef uint8_t* (*GetCameraDataFunc)(void);
 
@@ -16,20 +17,50 @@ MoveCameraCallback GlobalCallback = NULL;
 SessionCallback GlobalStartSession = NULL;
 SessionCallback GlobalEndSession = NULL;
 
+EXPOSE uint8_t* U_IGCS_CameraData[10];
+
 // There are things that only needs to be run once.
 static int first_initialization = 1;
 
 EXPOSE int __cdecl IGCS_StartScreenshotSession(uint8_t _ignore) {
   if (GlobalStartSession) {
-    GlobalStartSession();
     printf("Called StartSession\n");
+    return GlobalStartSession();
   }
-  return 0;
+  return 4;
 }
 
 EXPOSE void __cdecl IGCS_EndScreenshotSession() {
   GlobalEndSession();
   printf("Called EndSession\n");
+}
+
+int connect_all_tools() {
+  HMODULE mods[1024];
+  DWORD cbNeeded;
+  HANDLE proc = GetCurrentProcess();
+  int cameraSize = 0;
+
+  if (!EnumProcessModules(proc, mods, sizeof(mods), &cbNeeded)) {
+    return -1;
+  }
+
+  for (int i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
+    FARPROC connect_camera_tools = GetProcAddress(mods[i], "connectFromCameraTools");
+    GetCameraDataFunc getCameraData = (GetCameraDataFunc)GetProcAddress(mods[i], "getDataFromCameraToolsBuffer");
+
+    if (connect_camera_tools == NULL) continue;
+
+    char module_name[512];
+    GetModuleFileNameA(mods[i], module_name, sizeof(module_name));
+
+    printf("Connected to %s tool\n", module_name);
+    connect_camera_tools();
+    U_IGCS_CameraData[cameraSize] = getCameraData();
+    cameraSize++;
+
+  }
+  return 0;
 }
 
 EXPOSE uint8_t* __cdecl U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback start_cb, SessionCallback end_cb) {
@@ -39,37 +70,18 @@ EXPOSE uint8_t* __cdecl U_IGCS_Initialize(MoveCameraCallback cb, SessionCallback
   GlobalStartSession = start_cb;
   GlobalEndSession = end_cb;
 
-  // Load IGCS
-#ifdef _M_IX86
-  HMODULE igcs = LoadLibraryA("IgcsConnector.addon32");
-#else
-  HMODULE igcs = LoadLibraryA("IgcsConnector.addon64");
-#endif
-
-  if (!igcs) {
-    MessageBoxA(
-      NULL,
-      "IgcsConnector.addon64 was not found, make sure it is in the same directory as the executable.",
-      "Unable to find IgcsConnector",
-      MB_OK | MB_ICONERROR);
-    return NULL;
-  }
-
-  FARPROC cameraToolsFunction = GetProcAddress(igcs, "connectFromCameraTools");
-  GetCameraDataFunc getCameraData = (GetCameraDataFunc)GetProcAddress(igcs, "getDataFromCameraToolsBuffer");
-
   if (first_initialization) {
-    cameraToolsFunction();
+    
+    if (connect_all_tools()) {
+      printf("Error connecting cameras\n");
+      return 0;
+    }
     first_initialization = 0;
   }
 
-  // TODO: move this where it belongs. Maybe at some point we should actually fill in the data.
-  uint8_t* cameraData = getCameraData();
-  cameraData[0] = 0;
-
   printf("Camera connected!\n");
 
-  return cameraData;
+  return &U_IGCS_CameraData[0];
 
 }
 
