@@ -128,21 +128,16 @@ namespace UnityExplorer.UI
         {
             if (!UIRoot)
                 return;
-
             // If we are doing a Mouse Inspect, we don't need to update anything else.
             if (MouseInspector.Instance.TryUpdate())
                 return;
-
             // Update Notification modal
             Notification.Update();
-
             // Check forceUnlockMouse toggle
             if (IInputManager.GetKeyDown(ConfigManager.Force_Unlock_Toggle.Value))
                 UniverseLib.Config.ConfigManager.Force_Unlock_Mouse = !UniverseLib.Config.ConfigManager.Force_Unlock_Mouse;
-
             // update the timescale value
             timeScaleWidget.Update();
-
             // check screen dimension change
             Display display = DisplayManager.ActiveDisplay;
             if (display.renderingWidth != lastScreenWidth || display.renderingHeight != lastScreenHeight)

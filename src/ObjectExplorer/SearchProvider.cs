@@ -31,7 +31,7 @@ namespace UnityExplorer.ObjectExplorer
             return filter switch
             {
                 SceneFilter.Any => true,
-                SceneFilter.DontDestroyOnLoad => scene.handle == -12,
+                SceneFilter.DontDestroyOnLoad => scene.name == "DontDestroyOnLoad", //Scene.handle no longer exists in Unity 6
                 SceneFilter.HideAndDontSave => scene == default,
                 SceneFilter.ActivelyLoaded => scene.buildIndex != -1,
                 _ => false,

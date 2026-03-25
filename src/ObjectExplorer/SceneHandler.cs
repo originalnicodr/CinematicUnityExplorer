@@ -46,10 +46,21 @@ namespace UnityExplorer.ObjectExplorer
         /// <summary>Whether or not the "DontDestroyOnLoad" scene exists in this game.</summary>
         public static bool DontDestroyExists { get; private set; }
 
+        private static bool DoesDontDestroyOnLoadExist()
+        {
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                if (scene.name == "DontDestroyOnLoad")
+                    return true;
+            }
+            return false;
+        }
+
         internal static void Init()
         {
             // Check if the game has "DontDestroyOnLoad"
-            DontDestroyExists = Scene.GetNameInternal(-12) == "DontDestroyOnLoad";
+            DontDestroyExists = DoesDontDestroyOnLoadExist();
 
             // Try to get all scenes in the build settings. This may not work.
             try
@@ -80,8 +91,8 @@ namespace UnityExplorer.ObjectExplorer
             // Inspected scene will exist if it's DontDestroyOnLoad or HideAndDontSave
             bool inspectedExists =
                 SelectedScene.HasValue
-                && ((DontDestroyExists && SelectedScene.Value.handle == -12)
-                    || SelectedScene.Value.handle == -1);
+                && ((DontDestroyExists && SelectedScene.Value.name == "DontDestroyOnLoad")
+                || !SelectedScene.Value.IsValid());
 
             LoadedScenes.Clear();
 
@@ -98,9 +109,9 @@ namespace UnityExplorer.ObjectExplorer
                 LoadedScenes.Add(scene);
             }
 
-            if (DontDestroyExists)
-                LoadedScenes.Add(new Scene { m_Handle = -12 });
-            LoadedScenes.Add(new Scene { m_Handle = -1 });
+            //if (DontDestroyExists)
+            //    LoadedScenes.Add(new Scene { m_Handle = -12 });
+            //LoadedScenes.Add(new Scene { m_Handle = -1 });
 
             // Default to first scene if none selected or previous selection no longer exists.
             if (!inspectedExists)
