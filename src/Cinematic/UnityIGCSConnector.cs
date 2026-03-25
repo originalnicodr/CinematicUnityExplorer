@@ -107,6 +107,7 @@ namespace CinematicUnityExplorer.Cinematic
             {
                 CameraToolsData* data = (CameraToolsData*)CameraStatus;
                 data->fov = cam.fieldOfView;
+                data->cameraMovementLocked = _isActive ? (byte)1 : (byte)0;
 
                 data->coordinates.FromVector3(transform.position);
 
