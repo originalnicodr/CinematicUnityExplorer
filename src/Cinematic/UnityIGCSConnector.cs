@@ -11,6 +11,52 @@ namespace CinematicUnityExplorer.Cinematic
     // StepCommand is basically the offset of step_left and step_up, what IGCS sends to move the camera.
     using StepCommand = Mono.CSharp.Tuple<float, float>;
 
+    [StructLayout(LayoutKind.Sequential)]
+    struct Vec3
+    {
+        public float x, y, z;
+
+        public void FromVector3(Vector3 v)
+        {
+            this.x = v.x; this.y = v.y; this.z = v.z;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct Vec4
+    {
+        public float x, y, z, w;
+        public void FromQuaternion(Quaternion q) { this.x = q.x; this.y = q.y ; this.z = q.z; this.w = q.w; }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct CameraToolsData
+    {
+        public byte cameraEnabled;
+        public byte cameraMovementLocked;
+        public byte reserved1;
+        public byte reserved2;
+        public float fov;
+        public Vec3 coordinates;
+        public Vec4 lookQuaternion;
+        public Vec3 rotationMatrixUpVector;
+        public Vec3 rotationMatrixRightVector;
+        public Vec3 rotationMatrixForwardVector;
+        public float pitch;
+        public float yaw;
+        public float roll;
+    }
+
+    enum SessionStatus : int
+    {
+        Ok = 0,
+        Error_CameraNotEnabled = 1,
+        Error_CameraPathPlaying = 2,
+        Error_AlreadySessionActive = 3,
+        Error_CameraFeatureNotAvailable = 4,
+        Error_UnknownError = 5
+    }
+
     internal static class NativeMethods
     {
         [DllImport("kernel32.dll")]
@@ -26,7 +72,7 @@ namespace CinematicUnityExplorer.Cinematic
         private delegate void MoveCameraCallback(float step_left, float step_up, float fov, int from_start);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void SessionCallback();
+        private delegate int SessionCallback();
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate IntPtr U_IGCS_Initialize(MoveCameraCallback callback, SessionCallback start_cb, SessionCallback end_cb);
@@ -49,13 +95,60 @@ namespace CinematicUnityExplorer.Cinematic
         // This object *must* be used with a Lock.
         private readonly Queue<StepCommand> commands = new();
 
-        private IntPtr CameraStatus = IntPtr.Zero;
+        private IntPtr AllCamerasData = IntPtr.Zero;
 
+        private IEnumerable<IntPtr> GetValidCameras()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                IntPtr camPtr = Marshal.ReadIntPtr(AllCamerasData, i * IntPtr.Size);
+
+                if (camPtr == IntPtr.Zero)
+                    yield break;
+
+                yield return camPtr;
+            }
+        }
         public void UpdateFreecamStatus(bool enabled)
         {
-            if (CameraStatus == IntPtr.Zero) return;
-            
-            Marshal.WriteByte(CameraStatus, enabled ? (byte)0x1 : (byte)0x0);
+            if (AllCamerasData == IntPtr.Zero) return;
+            unsafe
+            {
+                foreach (IntPtr pCamera in this.GetValidCameras())
+                {
+                    CameraToolsData* data = (CameraToolsData*)pCamera;
+                    data->cameraEnabled = enabled ? (byte)1 : (byte) 0;
+                }
+            }
+        }
+
+        internal void UpdateCameraData(Camera cam)
+        {
+            if (AllCamerasData == IntPtr.Zero) return;
+
+            Transform transform = cam.transform;
+            unsafe
+            {
+                foreach (IntPtr pCamera in this.GetValidCameras())
+                {
+                    CameraToolsData* data = (CameraToolsData*)pCamera;
+                    data->fov = cam.fieldOfView;
+                    data->cameraMovementLocked = _isActive ? (byte)1 : (byte)0;
+
+                    data->coordinates.FromVector3(transform.position);
+
+                    data->lookQuaternion.FromQuaternion(transform.rotation);
+
+                    data->rotationMatrixRightVector.FromVector3(transform.right);
+                    data->rotationMatrixUpVector.FromVector3(transform.up);
+                    data->rotationMatrixForwardVector.FromVector3(transform.forward);
+
+                    Vector3 rot = transform.eulerAngles;
+                    data->pitch = rot.x * Mathf.Deg2Rad;
+                    data->yaw = rot.y * Mathf.Deg2Rad;
+                    data->roll = rot.z * Mathf.Deg2Rad;
+                }
+            }
         }
 
         public void ExecuteCameraCommand(Camera cam)
@@ -92,9 +185,11 @@ namespace CinematicUnityExplorer.Cinematic
                 commands.Enqueue(new StepCommand(stepLeft, stepUp));
             }
         }
-        private void StartSession()
+        private int StartSession()
         {
+            if (_isActive) return (int)SessionStatus.Error_AlreadySessionActive;
             _isActive = true;
+            return (int)SessionStatus.Ok;
         }
 
         // At the EndSession, since we have a queue system, we have to have a special check when the session ends and
@@ -111,7 +206,7 @@ namespace CinematicUnityExplorer.Cinematic
             endSessionPosition = null;
         }
 
-        private void EndSession()
+        private int EndSession()
         {
             endSessionPosition = position;
             position = null;
@@ -119,6 +214,8 @@ namespace CinematicUnityExplorer.Cinematic
 
             lock (commands)
                 commands.Clear();
+
+            return 0;
         }
 
         public UnityIGCSConnector()
@@ -143,8 +240,8 @@ namespace CinematicUnityExplorer.Cinematic
             delegates.Add(new SessionCallback(StartSession));
             delegates.Add(new SessionCallback(EndSession));
 
-            CameraStatus = initFunc((MoveCameraCallback)delegates[0], (SessionCallback)delegates[1], (SessionCallback)delegates[2]);
-            if (CameraStatus == IntPtr.Zero){
+            AllCamerasData = initFunc((MoveCameraCallback)delegates[0], (SessionCallback)delegates[1], (SessionCallback)delegates[2]);
+            if (AllCamerasData == IntPtr.Zero){
                 // This is actually a InvalidDataException, but some games dont allow you to throw that.
                 throw new Exception("IGCSDof returned an invalid pointer which means something went wrong");
             }
