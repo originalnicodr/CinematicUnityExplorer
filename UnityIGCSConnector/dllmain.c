@@ -6,6 +6,22 @@
 
 #define EXPOSE __declspec(dllexport)
 
+// Since we're using C, we're a bit limited on how we define enums,
+// so for the screenshot session, we have to do this.
+
+#ifdef _M_IX86
+typedef uint8_t SessionStatus;
+#else
+typedef int SessionStatus;
+#endif
+
+#define SESSION_STATUS_OK ((SessionStatus)0)
+#define SESSION_STATUS_CAMERA_NOT_ENABLED ((SessionStatus)1)
+#define SESSION_STATUS_CAMERA_PATH_PLAYING ((SessionStatus)2)
+#define SESSION_STATUS_ALREADY_SESSION_ACTIVE ((SessionStatus)3)
+#define SESSION_STATUS_CAMERA_FEAT_NOT_AVAILABLE ((SessionStatus)4)
+#define SESSION_STATUS_UNKNOWN_ERROR ((SessionStatus)5)
+
 // The function that will be the one called from the C# side, that will update the corresponding values.
 typedef void (*MoveCameraCallback)(float, float, float, int);
 
@@ -22,12 +38,14 @@ EXPOSE uint8_t* U_IGCS_CameraData[10];
 // There are things that only needs to be run once.
 static int first_initialization = 1;
 
-EXPOSE int __cdecl IGCS_StartScreenshotSession(uint8_t _ignore) {
+
+
+EXPOSE SessionStatus __cdecl IGCS_StartScreenshotSession(uint8_t _ignore) {
   if (GlobalStartSession) {
     printf("Called StartSession\n");
-    return GlobalStartSession();
+    return (SessionStatus)GlobalStartSession();
   }
-  return 4;
+  return SESSION_STATUS_CAMERA_FEAT_NOT_AVAILABLE;
 }
 
 EXPOSE void __cdecl IGCS_EndScreenshotSession() {

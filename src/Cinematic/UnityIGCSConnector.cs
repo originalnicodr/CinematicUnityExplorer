@@ -47,6 +47,16 @@ namespace CinematicUnityExplorer.Cinematic
         public float roll;
     }
 
+    enum SessionStatus : int
+    {
+        Ok = 0,
+        Error_CameraNotEnabled = 1,
+        Error_CameraPathPlaying = 2,
+        Error_AlreadySessionActive = 3,
+        Error_CameraFeatureNotAvailable = 4,
+        Error_UnknownError = 5
+    }
+
     internal static class NativeMethods
     {
         [DllImport("kernel32.dll")]
@@ -177,9 +187,9 @@ namespace CinematicUnityExplorer.Cinematic
         }
         private int StartSession()
         {
-            if (_isActive) return 3;
+            if (_isActive) return (int)SessionStatus.Error_AlreadySessionActive;
             _isActive = true;
-            return 0;
+            return (int)SessionStatus.Ok;
         }
 
         // At the EndSession, since we have a queue system, we have to have a special check when the session ends and
